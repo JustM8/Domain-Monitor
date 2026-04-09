@@ -24,17 +24,15 @@ class CheckDomains extends Command
         Domain::chunk(50, function ($domains) use ($service, $globalInterval) {
             foreach ($domains as $domain) {
 
-                $interval = (int) ($domain->check_interval ?: $globalInterval);
-
+                $domainInterval = (int) $domain->check_interval;
+                $interval = max($globalInterval, $domainInterval);
 
                 if (!$domain->last_checked_at) {
                     $service->check($domain);
                     continue;
                 }
 
-
                 $secondsSinceLastCheck = now()->diffInSeconds($domain->last_checked_at);
-
 
                 if ($secondsSinceLastCheck >= $interval) {
                     $service->check($domain);
