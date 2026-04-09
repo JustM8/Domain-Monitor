@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Domain;
 use App\Models\Check;
+use Throwable;
 
 class DomainCheckService
 {
@@ -16,7 +17,6 @@ class DomainCheckService
         }
 
         $url = rtrim($url, '/');
-
         $start = microtime(true);
 
         try {
@@ -28,13 +28,12 @@ class DomainCheckService
                 CURLOPT_TIMEOUT => $domain->timeout ?? 5,
                 CURLOPT_CONNECTTIMEOUT => $domain->timeout ?? 5,
                 CURLOPT_FOLLOWLOCATION => true,
-
-                // ✅ SSL fix (важливо для Railway/прода)
+                // ✅ SSL fix
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             ]);
 
-            // HEAD метод
             if ($domain->method === 'HEAD') {
                 curl_setopt($ch, CURLOPT_NOBODY, true);
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'HEAD');
@@ -44,7 +43,6 @@ class DomainCheckService
 
             $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $error  = curl_error($ch);
-
             curl_close($ch);
 
             $time = round((microtime(true) - $start), 3);
@@ -58,8 +56,7 @@ class DomainCheckService
                 'error'         => $error ?: null,
             ]);
 
-        } catch (\Throwable $e) {
-
+        } catch (Throwable $e) {
             Check::create([
                 'domain_id'  => $domain->id,
                 'checked_at' => now(),
@@ -69,7 +66,7 @@ class DomainCheckService
         }
 
         $domain->update([
-            'last_checked_at' => now()->startOfMinute(),
+            'last_checked_at' => now(),
         ]);
     }
 }

@@ -15,12 +15,15 @@ class Domain extends Model
         'is_active',
         'check_interval',
         'timeout',
-        'method'
+        'method',
+        'last_checked_at'
     ];
 
     protected $casts = [
+        'is_active' => 'boolean',
         'last_checked_at' => 'datetime',
     ];
+
     public function checks()
     {
         return $this->hasMany(Check::class);
