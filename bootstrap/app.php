@@ -14,6 +14,8 @@
 $app = new Illuminate\Foundation\Application(
     dirname(__DIR__)
 );
+
+$app->useConfigPath(dirname(__DIR__).'/config');
 /*
 |--------------------------------------------------------------------------
 | Bind Important Interfaces
