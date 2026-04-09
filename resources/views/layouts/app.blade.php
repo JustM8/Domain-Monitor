@@ -42,11 +42,15 @@
 
             {{-- USER --}}
             <div class="d-flex align-items-center gap-3">
-                <span class="text-white small">{{ auth()->user()->email }}</span>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="btn btn-sm btn-outline-light">Logout</button>
-                </form>
+                @auth
+                    <span class="text-white small">{{ auth()->user()->email }}</span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="btn btn-sm btn-outline-light">Logout</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light">Login</a>
+                @endauth
             </div>
 
         </div>
