@@ -13,28 +13,35 @@ use Illuminate\Support\Facades\Mail;
 class CheckDomains extends Command
 {
     protected $signature = 'domains:check';
-    protected $description = 'Check all domains based on individual or global intervals';
+    protected $description = 'Check domains with interval control';
 
     public function handle(DomainCheckService $service)
     {
         $settings = Setting::first();
 
-        $globalInterval = $settings->check_interval ?? 86400;
+        $globalInterval = (int) ($settings->check_interval ?? 86400);
 
         Domain::chunk(50, function ($domains) use ($service, $globalInterval) {
             foreach ($domains as $domain) {
 
-                $interval = $domain->check_interval ?: $globalInterval;
+                $interval = (int) ($domain->check_interval ?: $globalInterval);
 
-                // Перевіряємо, чи настав час для нової перевірки
-                if (
-                    !$domain->last_checked_at ||
-                    $domain->last_checked_at->addSeconds($interval)->isPast()
-                ) {
+
+                if (!$domain->last_checked_at) {
+                    $service->check($domain);
+                    continue;
+                }
+
+
+                $secondsSinceLastCheck = now()->diffInSeconds($domain->last_checked_at);
+
+
+                if ($secondsSinceLastCheck >= $interval) {
                     $service->check($domain);
                 }
             }
         });
+
 
         if ($settings && $settings->notification_email) {
             $checks = Check::with('domain')
