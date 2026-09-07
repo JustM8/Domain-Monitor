@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -19,8 +19,19 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'position',
+        'full_name',
         'email',
         'password',
+        'role_id',
+        'is_active',
+        'last_login_at',
+        'telegram_chat_id',
+        'telegram_username',
+        'telegram_link_token',
+        'telegram_link_requested_at',
+        'telegram_link_expires_at',
+        'telegram_verified_at',
     ];
 
     /**
@@ -41,10 +52,60 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
+        'telegram_link_requested_at' => 'datetime',
+        'telegram_link_expires_at' => 'datetime',
+        'telegram_verified_at' => 'datetime',
     ];
+
+    public function role()
+    {
+        return $this->belongsTo(\App\Modules\Shared\Models\Role::class);
+    }
 
     public function domains()
     {
         return $this->hasMany(\App\Models\Domain::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role?->name === 'admin' || $this->email === 'admin@admin.com';
+    }
+
+    public function isPm(): bool
+    {
+        return $this->role?->name === 'pm';
+    }
+
+    public function isDeveloper(): bool
+    {
+        return $this->role?->name === 'developer';
+    }
+
+    public function displayName(): string
+    {
+        return $this->full_name ?: $this->name;
+    }
+
+    public function telegramIsLinked(): bool
+    {
+        return filled($this->telegram_chat_id) && filled($this->telegram_verified_at);
+    }
+
+    public function telegramIsPending(): bool
+    {
+        return filled($this->telegram_link_token) && blank($this->telegram_verified_at);
+    }
+
+    public function telegramIsApproved(): bool
+    {
+        return filled($this->telegram_verified_at);
+    }
+
+    public function telegramNeedsBotStart(): bool
+    {
+        return $this->telegramIsApproved() && blank($this->telegram_chat_id);
     }
 }

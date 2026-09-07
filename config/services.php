@@ -31,4 +31,27 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
+        'http_verify' => env('TELEGRAM_HTTP_VERIFY', true),
+    ],
+
+    'telegram_support' => [
+        'bot_token' => env('TELEGRAM_SUPPORT_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_SUPPORT_BOT_USERNAME'),
+        'webhook_secret' => env('TELEGRAM_SUPPORT_WEBHOOK_SECRET'),
+        'webhook_url' => env('TELEGRAM_SUPPORT_WEBHOOK_URL'),
+        'http_verify' => env('TELEGRAM_SUPPORT_HTTP_VERIFY', true),
+        'support_chat_id' => env('TELEGRAM_SUPPORT_CHAT_ID'),
+        'topic_chat_ids' => [
+            'consultation' => env('TELEGRAM_SUPPORT_CONSULTATION_CHAT_ID', env('TELEGRAM_SUPPORT_CHAT_ID')),
+            'settings' => env('TELEGRAM_SUPPORT_SETTINGS_CHAT_ID'),
+            'error' => env('TELEGRAM_SUPPORT_ERROR_CHAT_ID'),
+            'feature' => env('TELEGRAM_SUPPORT_FEATURE_CHAT_ID'),
+        ],
+    ],
+
 ];

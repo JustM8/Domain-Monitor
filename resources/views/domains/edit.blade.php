@@ -7,7 +7,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
 
-                    <h5>Edit Domain</h5>
+                    <h5>Редагування домену</h5>
 
                     <form method="POST" action="{{ route('domains.update', $domain) }}">
                         @csrf
@@ -32,7 +32,7 @@
                             </select>
                         </div>
 
-                        <button class="btn btn-primary w-100">Update</button>
+                        <button class="btn btn-primary w-100">Оновити</button>
 
                     </form>
 

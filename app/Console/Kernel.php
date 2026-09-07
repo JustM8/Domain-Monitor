@@ -13,11 +13,11 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('domains:check')->everyMinute();
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('portal:prune')->daily();
     }
 
     /**
-     * Register the commands for the application.
+     * Register the application's commands.
      */
     protected function commands(): void
     {

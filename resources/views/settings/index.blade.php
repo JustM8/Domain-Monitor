@@ -5,7 +5,7 @@
     <div class="card shadow-sm">
         <div class="card-body">
 
-            <h5 class="mb-4">Settings</h5>
+            <h5 class="mb-4">Налаштування</h5>
 
             @if(session('success'))
                 <div class="alert alert-success">
@@ -20,7 +20,7 @@
 
                     {{-- EMAIL --}}
                     <div class="col-md-6">
-                        <label class="form-label">Notification Email</label>
+                        <label class="form-label">Електронна пошта для сповіщень</label>
                         <input type="email"
                                name="email"
                                class="form-control"
@@ -30,7 +30,7 @@
 
                     {{-- GLOBAL INTERVAL --}}
                     <div class="col-md-6">
-                        <label class="form-label">Global Check Interval (seconds)</label>
+                        <label class="form-label">Глобальний інтервал перевірки (секунди)</label>
                         <input type="number"
                                name="interval"
                                class="form-control"
@@ -44,11 +44,11 @@
                 <div class="mt-4 d-flex justify-content-between align-items-center">
 
                     <div class="text-muted small">
-                        If domain interval is not set, global interval will be used
+                        Якщо для домену не задано інтервал, буде використано глобальний
                     </div>
 
                     <button type="submit" class="btn btn-primary">
-                        Save Settings
+                        Зберегти налаштування
                     </button>
 
                 </div>

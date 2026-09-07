@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Modules\Site\Models;
+
+use App\Modules\Ftp\Models\FtpAccount;
+use App\Modules\Hosting\Models\HostingAccount;
+use App\Modules\Shared\Traits\HasPortalAudit;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
+
+class Site extends Model
+{
+    use HasFactory;
+    use SoftDeletes;
+    use HasPortalAudit;
+
+    public const SITE_TYPE_LABELS = [
+        'site' => 'portal.site_type_site',
+        '3d' => 'portal.site_type_3d',
+        'devbase' => 'portal.site_type_devbase',
+    ];
+
+    public const ENVIRONMENT_LABELS = [
+        'prod' => 'portal.environment_prod',
+        'dev' => 'portal.environment_dev',
+    ];
+
+    protected $fillable = [
+        'name',
+        'url',
+        'api_token',
+        'site_type',
+        'environment',
+        'admin_url',
+        'admin_login',
+        'admin_password',
+        'status_id',
+        'company_id',
+        'repo_url',
+        'branch',
+        'cms',
+        'version',
+        'ssl',
+        'last_backup_at',
+        'last_synced_at',
+        'last_sync_status',
+        'last_sync_error',
+        'remote_control_enabled',
+        'is_active',
+        'disabled_reason',
+        'disabled_by',
+        'disabled_at',
+        'note',
+        'created_by',
+        'updated_by',
+        'deleted_by',
+    ];
+
+    protected $casts = [
+        'ssl' => 'boolean',
+        'is_active' => 'boolean',
+        'remote_control_enabled' => 'boolean',
+        'last_backup_at' => 'datetime',
+        'last_synced_at' => 'datetime',
+        'disabled_at' => 'datetime',
+    ];
+
+    protected $hidden = [
+        'admin_password',
+        'api_token',
+    ];
+
+    public function status()
+    {
+        return $this->belongsTo(\App\Modules\Shared\Models\Status::class);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(\App\Modules\Shared\Models\Company::class);
+    }
+
+    public function ftpAccounts()
+    {
+        return $this->belongsToMany(FtpAccount::class, 'site_ftp_accounts')
+            ->withTimestamps();
+    }
+
+    public function hostingAccounts()
+    {
+        return $this->belongsToMany(HostingAccount::class, 'site_hosting')
+            ->withPivot(['is_main'])
+            ->withTimestamps();
+    }
+
+    public function revisions()
+    {
+        return $this->hasMany(SiteRevision::class);
+    }
+
+    public function activityLogs()
+    {
+        return $this->morphMany(\App\Modules\Shared\Models\ActivityLog::class, 'subject');
+    }
+
+    public static function siteTypeOptions(): array
+    {
+        return array_map(fn ($label) => __($label), self::SITE_TYPE_LABELS);
+    }
+
+    public static function environmentOptions(): array
+    {
+        return array_map(fn ($label) => __($label), self::ENVIRONMENT_LABELS);
+    }
+
+    public function siteTypeLabel(): string
+    {
+        $key = self::SITE_TYPE_LABELS[$this->site_type] ?? null;
+
+        return $key ? __($key) : (string) $this->site_type;
+    }
+
+    public function environmentLabel(): string
+    {
+        $key = self::ENVIRONMENT_LABELS[$this->environment] ?? null;
+
+        return $key ? __($key) : (string) $this->environment;
+    }
+
+    public function decryptedAdminPassword(): ?string
+    {
+        if (! $this->admin_password) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($this->admin_password);
+        } catch (\Throwable) {
+            try {
+                return decrypt($this->admin_password);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+    }
+
+    public static function projectTypeOptions(): array
+    {
+        return self::environmentOptions();
+    }
+
+    public function projectTypeLabel(): string
+    {
+        return $this->environmentLabel();
+    }
+}

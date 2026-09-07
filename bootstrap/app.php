@@ -18,6 +18,7 @@ $app = new Illuminate\Foundation\Application(
 $app->instance('path.base', dirname(__DIR__));
 $app->useConfigPath(dirname(__DIR__).'/config');
 $app->useStoragePath(dirname(__DIR__).'/storage');
+$app->useLangPath(dirname(__DIR__).'/lang');
 /*
 |--------------------------------------------------------------------------
 | Bind Important Interfaces

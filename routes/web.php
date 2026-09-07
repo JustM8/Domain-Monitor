@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\DomainController;
-use App\Http\Controllers\SettingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,19 +14,26 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('portal.dashboard') : view('welcome');
 });
 
-Auth::routes();
+Auth::routes(['verify' => true]);
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->get('/portal/pending-approval', function () {
+    return view('portal.pending-approval');
+})->name('portal.pending-approval');
+
+Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-
-    Route::resource('domains', \App\Http\Controllers\DomainController::class);
-    Route::post('/domains/{domain}/check', [DomainController::class, 'check'])->name('domains.check');
-
-    Route::get('/checks', [\App\Http\Controllers\CheckController::class, 'index'])->name('checks.index');
-
-    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
-    Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 });
+
+require app_path('Modules/Shared/routes/web.php');
+require app_path('Modules/Shared/routes/trash.php');
+require app_path('Modules/Shared/routes/companies.php');
+require app_path('Modules/Shared/routes/statuses.php');
+require app_path('Modules/Site/routes/web.php');
+require app_path('Modules/Ftp/routes/web.php');
+require app_path('Modules/Hosting/routes/web.php');
+require app_path('Modules/UserManagement/routes/web.php');
+require app_path('Modules/Audit/routes/web.php');
+require app_path('Modules/TelegramSupport/routes/web.php');

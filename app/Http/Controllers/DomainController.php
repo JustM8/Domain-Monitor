@@ -11,13 +11,23 @@ class DomainController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim((string) $request->string('search'));
+
         $domains = Domain::with('lastCheck')
             ->where('user_id', auth()->id())
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('domain', 'like', "%{$search}%")
+                        ->orWhere('method', 'like', "%{$search}%")
+                        ->orWhere('check_interval', 'like', "%{$search}%")
+                        ->orWhere('timeout', 'like', "%{$search}%");
+                });
+            })
             ->get();
 
-        return view('domains.index', compact('domains'));
+        return view('domains.index', compact('domains', 'search'));
     }
 
     /**
