@@ -49,7 +49,7 @@
 - Monitoring/Services/MonitoringReport.php: календарні межі, часова доступність/покриття, агрегування.
 - Нові таблиці monitoring_periods, monitoring_spans, monitoring_metrics зберігають довгострокову історію; схема у міграції 2026_09_19_000001.
 - Шаблони monitoring/options.blade.php і monitoring/report.blade.php спільні для форм/звітів; sites/operation-mode.blade.php — режим сайту.
-- tests/Feature/MonitoringPatchTest.php: 17 нових сценаріїв.
+- tests/Feature/MonitoringPatchTest.php: 18 нових сценаріїв.
 - Поточна поведінка й список файлів — [MONITORING-PATCH.md](MONITORING-PATCH.md).
 
 ## Тести для відповідних змін

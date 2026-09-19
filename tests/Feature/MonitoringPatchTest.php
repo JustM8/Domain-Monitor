@@ -363,4 +363,30 @@ class MonitoringPatchTest extends TestCase
         $this->assertDatabaseHas('activity_logs', ['action' => 'monitoring.site_settings_updated',
             'subject_type' => \App\Modules\Site\Models\Site::class, 'subject_id' => $site->id]);
     }
+
+    public function test_partial_migration_can_resume_without_resetting_existing_settings_or_history(): void
+    {
+        $site = $this->site(['monitoring_interval' => 17]);
+        $site->forceFill(['control_version' => 9])->save();
+        $key = $site->api_token;
+        app(SiteMonitor::class)->check($site, true);
+        DB::table('sites')->where('id', $site->id)->update(['monitoring_enabled' => false]);
+        $period = (array) DB::table('monitoring_periods')->first();
+        $check = (array) DB::table('monitoring_checks')->first();
+        \Illuminate\Support\Facades\Schema::drop('monitoring_spans');
+        \Illuminate\Support\Facades\Schema::drop('monitoring_metrics');
+        \Illuminate\Support\Facades\Schema::table('monitoring_states', fn ($t) => $t->dropColumn('first_failed_at'));
+        config(['monitoring.interval_minutes' => 3]);
+        $migration = require database_path('migrations/2026_09_19_000001_extend_site_monitoring.php');
+        $migration->up();
+        $migration->up();
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('monitoring_spans'));
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('monitoring_metrics'));
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn('monitoring_states', 'first_failed_at'));
+        $this->assertDatabaseHas('sites', ['id' => $site->id, 'monitoring_enabled' => false,
+            'monitoring_interval' => 17, 'api_token' => $key, 'control_version' => 9]);
+        $this->assertDatabaseCount('monitoring_periods', 1);
+        $this->assertSame($period, (array) DB::table('monitoring_periods')->first());
+        $this->assertSame($check, (array) DB::table('monitoring_checks')->first());
+    }
 }

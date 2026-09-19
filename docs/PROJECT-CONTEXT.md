@@ -61,4 +61,4 @@ PM має sites.control, але не sites.write: це важливо для н�
 
 Початок задачі: [AGENTS.md](../AGENTS.md) → [карта модулів](MODULE-MAP.md) → потрібний сервіс і тести. Для моніторингу — [аналіз і план](MONITORING-PLAN.md). Після реалізації оновлювати факти й статус плану.
 
-Патч реалізований: 53 тести, 382 assertions на PHP 8.3 / SQLite. Хостинг не оновлювався. Автоматичний обхід працює за monitoring_enabled; ручні перевірки відокремлені. Часову історію й гістограми зберігають MonitoringHistory та MonitoringReport; SiteProbe збирає результати. Докладніше — [MONITORING-PATCH.md](MONITORING-PATCH.md). [PATCH-VALIDATION.md](PATCH-VALIDATION.md) залишається історичним звітом від 14 вересня.
+Патч реалізований: 54 тести, 389 assertions на PHP 8.3 / SQLite. Хостинг не оновлювався. Автоматичний обхід працює за monitoring_enabled; ручні перевірки відокремлені. Часову історію й гістограми зберігають MonitoringHistory та MonitoringReport; SiteProbe збирає результати. Докладніше — [MONITORING-PATCH.md](MONITORING-PATCH.md). [PATCH-VALIDATION.md](PATCH-VALIDATION.md) залишається історичним звітом від 14 вересня.
