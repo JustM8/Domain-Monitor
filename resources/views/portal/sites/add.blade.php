@@ -65,16 +65,8 @@
                 @endforeach
             </select>
         </div>
-        @can('sites.control')
-        <div class="col-12">
-            <div class="form-check form-switch">
-                <input type="hidden" name="remote_control_enabled" value="0">
-                <input class="form-check-input" type="checkbox" role="switch" id="site-remote-control-add" name="remote_control_enabled" value="1" @checked(old('remote_control_enabled'))>
-                <label class="form-check-label" for="site-remote-control-add">{{ __('portal.remote_control') }}</label>
-            </div>
-            <div class="portal-soft small">{{ __('portal.remote_control_hint') }}</div>
-        </div>
-        @endcan
+        @include('portal.sites.operation-mode')
+        @include('portal.monitoring.options', ['monitoringReadOnly' => ! auth()->user()->canPortal('sites.write')])
         @include('portal.sites.presentation-fields')
 
         <div class="col-12">

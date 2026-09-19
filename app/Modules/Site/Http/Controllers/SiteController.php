@@ -100,6 +100,7 @@ class SiteController extends Controller
         $adminPassword = trim((string) $request->input('admin_password'));
         $data['admin_password'] = $adminPassword !== '' ? Crypt::encryptString($adminPassword) : null;
         $data['api_token'] = Crypt::encryptString(Str::random(60));
+        $data += app(\App\Modules\Monitoring\Services\MonitoringOptions::class)->fromRequest($request);
         $data['ssl'] = $request->boolean('ssl');
         $data += app(\App\Modules\Site\Services\SitePresentation::class)->fromRequest($request);
         if ($request->user()->canPortal('sites.control')) {
@@ -185,6 +186,7 @@ class SiteController extends Controller
             unset($data['admin_password']);
         }
 
+        $data += app(\App\Modules\Monitoring\Services\MonitoringOptions::class)->fromRequest($request);
         $data['ssl'] = $request->boolean('ssl');
         $data += app(\App\Modules\Site\Services\SitePresentation::class)->fromRequest($request);
         if ($request->user()->canPortal('sites.control')) {
@@ -209,7 +211,10 @@ class SiteController extends Controller
 
     public function destroy(Site $site)
     {
-        $site->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($site) {
+            $site = Site::query()->lockForUpdate()->findOrFail($site->id);
+            $site->delete();
+        });
 
         $this->logRevision($site, 'delete', $site->toArray(), []);
         $this->logActivity($site, 'site.deleted', $site->toArray());
@@ -237,7 +242,7 @@ class SiteController extends Controller
         );
 
         if ($result === null) {
-            return back()->with('info', __('portal.remote_control_disabled_notice'));
+            abort(422, __('portal.remote_control_disabled_notice'));
         }
 
         if ($result['ok']) {
@@ -287,7 +292,9 @@ class SiteController extends Controller
     {
         $site = \Illuminate\Support\Facades\DB::transaction(function () use ($site) {
             $locked = Site::query()->lockForUpdate()->findOrFail($site->id);
-            $locked->forceFill(['remote_control_enabled' => ! $locked->remote_control_enabled, 'control_version' => $locked->control_version + 1])->save();
+            $locked = app(\App\Modules\Site\Services\SiteMetadataService::class)->update(
+                $locked, ['remote_control_enabled' => ! $locked->remote_control_enabled]
+            );
             $this->logActivity($locked, 'site.remote_control_changed', ['enabled' => $locked->remote_control_enabled, 'version' => $locked->control_version]);
 
             return $locked;

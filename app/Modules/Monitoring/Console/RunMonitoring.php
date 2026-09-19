@@ -13,7 +13,7 @@ class RunMonitoring extends Command
 {
     protected $signature = 'monitoring:run';
 
-    protected $description = 'Check due production sites in a bounded, non-overlapping batch';
+    protected $description = 'Check enabled sites in a bounded, non-overlapping batch';
 
     public function handle(SiteMonitor $monitor, MonitoringNotifications $notifications): int
     {
@@ -34,19 +34,20 @@ class RunMonitoring extends Command
             $run = DB::table('monitoring_runs')->insertGetId(['started_at' => now()]);
             $deadline = microtime(true) + $seconds;
             $notifications->deliver(1, $deadline);
-            $sites = Site::query()->where('environment', 'prod')
+            $sites = Site::query()->where('monitoring_enabled', true)
                 ->leftJoin('monitoring_states as ms', 'ms.site_id', '=', 'sites.id')
                 ->where(fn ($q) => $q->whereNull('ms.next_check_at')->orWhere('ms.next_check_at', '<=', now()))
                 ->orderByRaw('CASE WHEN ms.next_check_at IS NULL THEN 0 ELSE 1 END')->orderBy('ms.next_check_at')->orderBy('sites.id')
                 ->select('sites.*')->limit(max(1, min(500, (int) config('monitoring.batch_size'))))->get();
             $checked = 0;
             foreach ($sites as $site) {
-                if (microtime(true) >= $deadline - 25) {
+                if (microtime(true) >= $deadline - ($site->monitoring_timeout * 4 + 5)) {
                     break;
                 }
                 try {
                     $monitor->check($site);
                     $checked++;
+                    $notifications->deliver(1, $deadline);
                 } catch (\App\Modules\Monitoring\Services\CheckAlreadyRunning $e) {
                     continue;
                 }

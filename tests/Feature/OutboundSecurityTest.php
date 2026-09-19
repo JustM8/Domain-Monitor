@@ -92,6 +92,14 @@ class OutboundSecurityTest extends TestCase
         $site = $service->update($site, ['display_mode' => 'iframe', 'embed_origins' => ['https://client.example']]);
         $this->assertSame(1, $site->control_version);
         $this->assertSame(0, $site->confirmed_control_version);
+        // Changing a managed target now requires the current active command to be acknowledged.
+        try {
+            $service->update($site, ['url' => 'https://new.example']);
+            $this->fail('Unconfirmed control version must block detachment.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('remote_control_enabled', $e->errors());
+        }
+        $site->forceFill(['confirmed_state' => 'active', 'confirmed_control_version' => 1])->save();
         $oldToken = $site->api_token;
         $site = $service->update($site, ['url' => 'https://new.example']);
         $this->assertSame(2, $site->control_version);

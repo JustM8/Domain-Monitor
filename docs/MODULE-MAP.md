@@ -41,6 +41,17 @@
 
 Міграція 2026_09_14_000001_add_recovery_and_control_history.php додає журнал керування та відновлення обробки Telegram.
 
+## Доповнення патча моніторингу 19 вересня
+
+- Monitoring/Services/SiteProbe.php: HTTP/контент, помилки, транспортні метрики й сертифікат.
+- Monitoring/Services/MonitoringOptions.php: валідація параметрів та відповідальних.
+- Monitoring/Services/MonitoringHistory.php: активні періоди, злиття інтервалів, денні гістограми.
+- Monitoring/Services/MonitoringReport.php: календарні межі, часова доступність/покриття, агрегування.
+- Нові таблиці monitoring_periods, monitoring_spans, monitoring_metrics зберігають довгострокову історію; схема у міграції 2026_09_19_000001.
+- Шаблони monitoring/options.blade.php і monitoring/report.blade.php спільні для форм/звітів; sites/operation-mode.blade.php — режим сайту.
+- tests/Feature/MonitoringPatchTest.php: 17 нових сценаріїв.
+- Поточна поведінка й список файлів — [MONITORING-PATCH.md](MONITORING-PATCH.md).
+
 ## Тести для відповідних змін
 
 Це орієнтири для читання, а не твердження про повне покриття.
@@ -58,6 +69,8 @@
 Команда: php vendor/bin/phpunit. Налаштування безпечного тестового середовища — phpunit.xml і tests/TestCase.php.
 
 ## Документи
+
+- [MONITORING-DEPLOY.md](MONITORING-DEPLOY.md): точний перелік для FTP, міграція, cron і команди.
 
 - [PROJECT-CONTEXT.md](PROJECT-CONTEXT.md): призначення, поняття й потоки.
 - [MONITORING-PLAN.md](MONITORING-PLAN.md): поточний стан і пропозиції.

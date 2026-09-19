@@ -50,6 +50,9 @@ class Site extends Model
         'last_sync_status',
         'last_sync_error',
         'remote_control_enabled',
+        'monitoring_enabled', 'monitoring_interval', 'monitoring_timeout',
+        'monitoring_failure_threshold', 'monitoring_status_codes', 'monitoring_url',
+        'monitoring_content', 'monitoring_recipient_ids',
         'is_active',
         'disabled_reason',
         'disabled_by',
@@ -67,6 +70,13 @@ class Site extends Model
         'ssl' => 'boolean',
         'is_active' => 'boolean',
         'remote_control_enabled' => 'boolean',
+        'monitoring_enabled' => 'boolean',
+        'monitoring_revision' => 'integer',
+        'monitoring_interval' => 'integer',
+        'monitoring_timeout' => 'integer',
+        'monitoring_failure_threshold' => 'integer',
+        'monitoring_status_codes' => 'array',
+        'monitoring_recipient_ids' => 'array',
         'last_backup_at' => 'datetime',
         'last_synced_at' => 'datetime',
         'disabled_at' => 'datetime',
@@ -76,6 +86,39 @@ class Site extends Model
         'admin_password',
         'api_token',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $site) {
+            if ($site->monitoring_enabled === null) {
+                $site->monitoring_enabled = $site->environment === 'prod';
+            }
+            $site->monitoring_interval ??= max(1, min(60, (int) config('monitoring.interval_minutes', 5)));
+            $site->monitoring_timeout ??= 6;
+            $site->monitoring_failure_threshold ??= 2;
+        });
+        static::deleting(function (self $site) {
+            if (! $site->isForceDeleting()) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($site) {
+                    self::query()->lockForUpdate()->findOrFail($site->id);
+                    app(\App\Modules\Monitoring\Services\MonitoringHistory::class)->stop($site, 'deleted');
+                });
+            }
+        });
+        static::restoring(function (self $site) {
+            $site->monitoring_revision++;
+        });
+        static::restored(function (self $site) {
+            if ($site->monitoring_enabled) {
+                app(\App\Modules\Monitoring\Services\MonitoringHistory::class)->start($site);
+            }
+        });
+        static::created(function (self $site) {
+            if ($site->monitoring_enabled) {
+                app(\App\Modules\Monitoring\Services\MonitoringHistory::class)->start($site);
+            }
+        });
+    }
 
     public function status()
     {
