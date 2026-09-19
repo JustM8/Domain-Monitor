@@ -32,7 +32,7 @@ return new class extends Migration
             });
         }
 
-        $consultationChatId = (string) config('services.telegram_support.support_chat_id');
+        $consultationChatId = (string) config('telegram_support.support_chat_id');
         if (filled($consultationChatId)) {
             DB::table('support_topics')
                 ->where('code', 'consultation')

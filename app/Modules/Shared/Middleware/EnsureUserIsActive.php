@@ -12,7 +12,7 @@ class EnsureUserIsActive
     {
         $user = $request->user();
 
-        if ($user && $user->is_active === false) {
+        if ($user && ! $user->portalIsActive()) {
             $routeName = $request->route()?->getName();
             $allowedRoutes = [
                 'portal.pending-approval',

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\TelegramSupport\Models\SupportMessage;
 use App\Modules\TelegramSupport\Models\SupportSession;
 use App\Modules\TelegramSupport\Models\SupportTicket;
-use App\Services\TelegramSupportBotService;
+use App\Modules\TelegramSupport\Services\TelegramSupportBotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -58,6 +58,8 @@ class SupportTicketController extends Controller
         ];
 
         return view('portal.support.index', [
+            'interruptedUpdates' => \Illuminate\Support\Facades\DB::table('telegram_webhook_receipts')->where('bot', 'support')
+                ->where(fn ($q) => $q->where('status', 'needs_review')->orWhere(fn ($q) => $q->where('status', 'processing')->where('started_at', '<', now()->subMinutes(15))))->count(),
             'tickets' => $tickets,
             'statuses' => SupportTicket::statusOptions(),
             'types' => SupportTicket::typeOptions(),
@@ -86,50 +88,24 @@ class SupportTicketController extends Controller
         ]);
     }
 
-    public function reply(Request $request, SupportTicket $ticket, TelegramSupportBotService $bot)
+    public function reply(Request $request, SupportTicket $ticket, \App\Modules\TelegramSupport\Services\SupportReplyDelivery $delivery)
     {
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:4000'],
+        $data = $request->validate(['body' => ['required', 'string', 'max:3500']]);
+        $message = SupportMessage::create([
+            'support_ticket_id' => $ticket->id, 'direction' => 'staff', 'body' => $data['body'],
+            'sent_by_user_id' => $request->user()->id, 'delivery_status' => 'pending',
         ]);
+        $ok = $delivery->deliver($message);
 
-        $ticket->loadMissing('client', 'session');
+        return back()->with($ok ? 'success' : 'warning', $ok ? __('portal.support.reply_sent') : 'Повідомлення збережено, але не доставлено. Спробуйте повторити надсилання.');
+    }
 
-        if (! $ticket->client?->telegram_chat_id) {
-            return back()->with('error', __('portal.support.client_missing_chat'));
-        }
+    public function retryReply(SupportTicket $ticket, SupportMessage $message, \App\Modules\TelegramSupport\Services\SupportReplyDelivery $delivery)
+    {
+        abort_unless($message->support_ticket_id === $ticket->id && $message->direction === 'staff', 404);
+        $ok = $delivery->deliver($message);
 
-        $response = $bot->sendMessage($ticket->client->telegram_chat_id, $data['body']);
-        $flashType = 'success';
-        $flashMessage = __('portal.support.reply_sent');
-
-        if (! data_get($response, 'ok')) {
-            $flashType = 'warning';
-            $flashMessage = __('portal.support.reply_sent') . ' · ' . __('portal.telegram_notification_failed', [
-                'reason' => $this->telegramFailureReason($response),
-            ]);
-        }
-
-        SupportMessage::create([
-            'support_ticket_id' => $ticket->id,
-            'direction' => 'staff',
-            'body' => $data['body'],
-            'sent_by_user_id' => auth()->id(),
-        ]);
-
-        $ticket->forceFill([
-            'status' => SupportTicket::STATUS_IN_PROGRESS,
-            'first_response_at' => $ticket->first_response_at ?: now(),
-            'last_staff_message_at' => now(),
-        ])->save();
-
-        if ($ticket->session) {
-            $ticket->session->forceFill([
-                'status' => SupportSession::STATUS_IN_PROGRESS,
-                'last_message_at' => now(),
-            ])->save();
-        }
-
-        return back()->with($flashType, $flashMessage);
+        return back()->with($ok ? 'success' : 'warning', $ok ? 'Доставлено.' : 'Telegram не підтвердив доставку.');
     }
 
     public function updateStatus(Request $request, SupportTicket $ticket, TelegramSupportBotService $bot)
@@ -240,7 +216,7 @@ class SupportTicketController extends Controller
 
         $buttons = collect(range(0, 5))->map(fn (int $score) => [[
             'text' => (string) $score,
-            'callback_data' => 'ts:rate:' . $ticket->id . ':' . $score,
+            'callback_data' => 'ts:rate:'.$ticket->id.':'.$score,
         ]])->values()->all();
 
         $bot->sendMessage($ticket->client->telegram_chat_id, __('portal.support.request.rating_prompt'), [

@@ -22,11 +22,13 @@ return new class extends Migration
             $table->boolean('requires_ip_access')->default(false)->after('path');
         });
 
-        DB::statement('ALTER TABLE ftp_accounts MODIFY site_id BIGINT UNSIGNED NULL');
-        Schema::table('ftp_accounts', function (Blueprint $table) {
-            $table->dropForeign(['site_id']);
-            $table->foreign('site_id')->references('id')->on('sites')->nullOnDelete();
-        });
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE ftp_accounts MODIFY site_id BIGINT UNSIGNED NULL');
+            Schema::table('ftp_accounts', function (Blueprint $table) {
+                $table->dropForeign(['site_id']);
+                $table->foreign('site_id')->references('id')->on('sites')->nullOnDelete();
+            });
+        }
 
         DB::table('ftp_accounts')
             ->select('id', 'site_id')
@@ -46,15 +48,21 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('ftp_accounts', function (Blueprint $table) {
-            $table->dropForeign(['site_id']);
-            $table->dropConstrainedForeignId('company_id');
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->dropForeign(['site_id']);
+                $table->dropConstrainedForeignId('company_id');
+            } else {
+                $table->dropColumn('company_id');
+            }
             $table->dropColumn('requires_ip_access');
         });
 
-        DB::statement('ALTER TABLE ftp_accounts MODIFY site_id BIGINT UNSIGNED NOT NULL');
-        Schema::table('ftp_accounts', function (Blueprint $table) {
-            $table->foreign('site_id')->references('id')->on('sites')->cascadeOnDelete();
-        });
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE ftp_accounts MODIFY site_id BIGINT UNSIGNED NOT NULL');
+            Schema::table('ftp_accounts', function (Blueprint $table) {
+                $table->foreign('site_id')->references('id')->on('sites')->cascadeOnDelete();
+            });
+        }
 
         Schema::dropIfExists('site_ftp_accounts');
     }

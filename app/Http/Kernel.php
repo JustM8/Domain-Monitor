@@ -59,6 +59,7 @@ class Kernel extends HttpKernel
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'active.user' => \App\Modules\Shared\Middleware\EnsureUserIsActive::class,
+        'telegram.webhook' => \App\Modules\Shared\Middleware\VerifyTelegramWebhook::class,
         'role' => \App\Modules\Shared\Middleware\CheckRole::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,

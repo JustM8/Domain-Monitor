@@ -50,15 +50,12 @@
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.new_password') }}</label>
                     <div class="input-group">
-                        <input id="profile-password" name="password" class="form-control" type="password" placeholder="{{ __('portal.new_password') }}">
-                        <button class="btn btn-outline-secondary" type="button" data-password-target="#profile-password" data-password-confirm="#profile-password-confirmation">
-                            <i class="bi bi-shuffle"></i> {{ __('portal.generate_password') }}
-                        </button>
+                        <input type="password" id="profile-password" name="password" class="form-control" placeholder="{{ __('portal.new_password') }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.password_confirm') }}</label>
-                    <input id="profile-password-confirmation" name="password_confirmation" class="form-control" type="password" placeholder="{{ __('portal.password_confirm') }}">
+                    <input type="password" id="profile-password-confirmation" name="password_confirmation" class="form-control" placeholder="{{ __('portal.password_confirm') }}">
                 </div>
                 <div class="col-12">
                     <button class="btn btn-primary px-4">{{ __('portal.save') }}</button>
@@ -126,27 +123,17 @@
                 </div>
 
                 <div class="d-flex gap-2 flex-wrap mt-3">
-                    @if((auth()->user()->telegramIsPending() || auth()->user()->telegramNeedsBotStart()) && auth()->user()->telegram_link_token && ! empty($telegramBotUsername))
-                        <a class="btn btn-outline-secondary" href="https://t.me/{{ $telegramBotUsername }}?start={{ auth()->user()->telegram_link_token }}" target="_blank" rel="noopener">
-                            <i class="bi bi-telegram me-1"></i>{{ __('portal.telegram_open_bot') }}
-                        </a>
-                    @elseif(! auth()->user()->telegramIsLinked())
-                        <form method="POST" action="{{ route('portal.profile.telegram.request') }}">
-                            @csrf
-                            <button class="btn btn-primary">
-                                <i class="bi bi-telegram me-1"></i>{{ __('portal.telegram_request_access') }}
-                            </button>
-                        </form>
-                    @else
-                        <span class="portal-soft small align-self-center">{{ __('portal.telegram_access_ready', ['name' => auth()->user()->displayName()]) }}</span>
-                    @endif
+                    @if(auth()->user()->canUseAccessBot())
+                    @can('access.use')<form method="POST" action="{{ route('portal.profile.telegram.request') }}">@csrf<button class="btn btn-primary"><i class="bi bi-telegram me-1"></i>{{ auth()->user()->telegramIsLinked() ? 'Перепідключити Telegram' : 'Підключити Telegram' }}</button></form>@endcan
+                    <div class="small portal-soft">Особисте посилання діє 15 хвилин і використовується один раз.</div>
+                    @else<div class="portal-soft">Для цієї ролі або стану облікового запису Access-бот недоступний.</div>@endif
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-xl-5">
-        <div class="portal-card p-4 h-100">
+        <div class="portal-card p-4">
             <h3 class="h5 mb-3">{{ __('portal.security') }}</h3>
             <div class="vstack gap-3">
                 <div>
@@ -170,36 +157,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    document.querySelectorAll('[data-password-target]').forEach((button) => {
-        button.addEventListener('click', async () => {
-            const target = document.querySelector(button.dataset.passwordTarget);
-            const confirmation = document.querySelector(button.dataset.passwordConfirm);
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
-            const length = 16;
-            let password = '';
-
-            for (let i = 0; i < length; i++) {
-                password += chars[Math.floor(Math.random() * chars.length)];
-            }
-
-            if (target) target.value = password;
-            if (confirmation) confirmation.value = password;
-
-            try {
-                await navigator.clipboard.writeText(password);
-                button.classList.remove('btn-outline-secondary');
-                button.classList.add('btn-success');
-                setTimeout(() => {
-                    button.classList.remove('btn-success');
-                    button.classList.add('btn-outline-secondary');
-                }, 1200);
-            } catch (e) {
-                // clipboard may be unavailable in some browsers
-            }
-        });
-    });
-</script>
-@endpush

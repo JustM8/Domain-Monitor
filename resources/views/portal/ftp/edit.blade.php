@@ -62,9 +62,9 @@
                             <button class="btn btn-outline-secondary" type="button" data-secret-copy="#ftp-password-view">
                                 <i class="bi bi-copy"></i> {{ __('portal.copy') }}
                             </button>
-                            <a class="btn btn-outline-secondary" href="{{ route('portal.ftp.filezilla', $account) }}">
+                            @can('ftp.read')<a class="btn btn-outline-secondary" href="{{ route('portal.ftp.filezilla', $account) }}">
                                 <i class="bi bi-filetype-xml me-1"></i>{{ __('portal.filezilla_export') }}
-                            </a>
+                            </a>@endcan
                         </div>
                     @else
                         <div class="fw-semibold">{{ __('portal.empty') }}</div>
@@ -81,7 +81,7 @@
                 @method('PUT')
                 <div>
                     <label class="form-label">{{ __('portal.company') }}</label>
-                    <select name="company_id" class="form-select">
+                    <select name="company_id" class="form-select" @disabled(! auth()->user()->canPortal('ftp.write'))>
                         <option value="">{{ __('portal.company') }}</option>
                         @foreach($companies as $company)
                             <option value="{{ $company->id }}" @selected($account->company_id === $company->id)>{{ $company->name }}</option>
@@ -91,7 +91,7 @@
                 <div>
                     <label class="form-label">{{ __('portal.linked_sites') }}</label>
                     <div class="portal-tags-box" data-tags-input data-tags-name="site_ids" data-tags-placeholder="{{ __('portal.new_tag') }}" data-tags-options='@json($sites->map(fn ($site) => ["id" => $site->id, "label" => $site->name, "search" => trim(($site->url ?? "") . " " . ($site->siteTypeLabel() ?? "") . " " . ($site->environmentLabel() ?? ""))])->values())' data-tags-selected='@json($account->sites->pluck("id")->values())'>
-                        <input type="text" class="portal-tags-input" data-tags-input-field placeholder="{{ __('portal.new_tag') }}">
+                        <input @readonly(! auth()->user()->canPortal('ftp.write')) type="text" class="portal-tags-input" data-tags-input-field placeholder="{{ __('portal.new_tag') }}">
                         <div class="portal-tags-suggestions d-none" data-tags-suggestions></div>
                         <div class="portal-tags-list" data-tags-list></div>
                         <div data-tags-hidden></div>
@@ -99,33 +99,33 @@
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.host') }}</label>
-                    <input name="host" class="form-control" value="{{ $account->host }}" required>
+                    <input @readonly(! auth()->user()->canPortal('ftp.write')) name="host" class="form-control" value="{{ $account->host }}" required>
                 </div>
                 <div>
                     <label class="form-label">Port</label>
-                    <input name="port" class="form-control" type="number" value="{{ $account->port }}">
+                    <input @readonly(! auth()->user()->canPortal('ftp.write')) name="port" class="form-control" type="number" value="{{ $account->port }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.login_label') }}</label>
-                    <input name="login" class="form-control" value="{{ $account->login }}" placeholder="{{ __('portal.login_label') }}">
+                    <input @readonly(! auth()->user()->canPortal('ftp.write')) name="login" class="form-control" value="{{ $account->login }}" placeholder="{{ __('portal.login_label') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.password') }}</label>
-                    <input name="password" type="password" class="form-control" placeholder="{{ __('portal.password') }}">
+                    <input @readonly(! auth()->user()->canPortal('ftp.write')) name="password" type="password" class="form-control" placeholder="{{ __('portal.password') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.path') }}</label>
-                    <input name="path" class="form-control" value="{{ $account->path }}" placeholder="{{ __('portal.path') }}">
+                    <input @readonly(! auth()->user()->canPortal('ftp.write')) name="path" class="form-control" value="{{ $account->path }}" placeholder="{{ __('portal.path') }}">
                 </div>
                 <div class="form-check">
-                    <input id="ftp-ip-access-edit" class="form-check-input" type="checkbox" name="requires_ip_access" value="1" @checked($account->requires_ip_access)>
+                    <input @readonly(! auth()->user()->canPortal('ftp.write')) id="ftp-ip-access-edit" class="form-check-input" type="checkbox" name="requires_ip_access" value="1" @checked($account->requires_ip_access)>
                     <label class="form-check-label" for="ftp-ip-access-edit">{{ __('portal.requires_ip_access') }}</label>
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.note') }}</label>
-                    <textarea name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $account->note }}</textarea>
+                    <textarea @readonly(! auth()->user()->canPortal('ftp.write')) name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $account->note }}</textarea>
                 </div>
-                <button class="btn btn-dark">{{ __('portal.save') }}</button>
+                @can('ftp.write')<button class="btn btn-dark">{{ __('portal.save') }}</button>@endcan
             </form>
         </div>
     </div>

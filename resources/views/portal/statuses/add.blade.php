@@ -7,9 +7,9 @@
             <h2 class="h5 mb-1">{{ __('portal.status_new') }}</h2>
             <div class="portal-soft small">{{ __('portal.statuses_settings') }}</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.statuses.index') }}">{{ __('portal.statuses') }}</a>
+        @can('statuses.read')<a class="btn btn-outline-secondary" href="{{ route('portal.statuses.index') }}">{{ __('portal.statuses') }}</a>@endcan
     </div>
-    <form method="POST" action="{{ route('portal.statuses.store') }}" class="vstack gap-3">
+    @can('statuses.write')<form method="POST" action="{{ route('portal.statuses.store') }}" class="vstack gap-3">
         @csrf
         <div>
             <label class="form-label">{{ __('portal.name') }}</label>
@@ -31,9 +31,9 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-primary">{{ __('portal.save') }}</button>
-            <a class="btn btn-outline-secondary" href="{{ route('portal.statuses.index') }}">{{ __('portal.statuses') }}</a>
+            @can('statuses.read')<a class="btn btn-outline-secondary" href="{{ route('portal.statuses.index') }}">{{ __('portal.statuses') }}</a>@endcan
         </div>
-    </form>
+    </form>@endcan
 
     <hr class="my-4">
     <div class="d-flex flex-wrap gap-2">

@@ -25,6 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'role_id',
         'is_active',
+        'approval_status',
         'last_login_at',
         'telegram_chat_id',
         'telegram_username',
@@ -42,6 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'telegram_link_token',
     ];
 
     /**
@@ -57,6 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'telegram_link_requested_at' => 'datetime',
         'telegram_link_expires_at' => 'datetime',
         'telegram_verified_at' => 'datetime',
+        'telegram_access_revoked_at' => 'datetime',
     ];
 
     public function role()
@@ -64,14 +67,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(\App\Modules\Shared\Models\Role::class);
     }
 
-    public function domains()
-    {
-        return $this->hasMany(\App\Models\Domain::class);
-    }
-
     public function isAdmin(): bool
     {
-        return $this->role?->name === 'admin' || $this->email === 'admin@admin.com';
+        return $this->role?->name === 'admin';
     }
 
     public function isPm(): bool
@@ -87,6 +85,33 @@ class User extends Authenticatable implements MustVerifyEmail
     public function displayName(): string
     {
         return $this->full_name ?: $this->name;
+    }
+
+    public function portalIsActive(): bool
+    {
+        return $this->is_active && $this->approval_status === 'active';
+    }
+
+    public function canPortal(string $ability): bool
+    {
+        return \App\Modules\Shared\Support\PortalAccess::allows($this, $ability);
+    }
+
+    public function canUseAccessBot(): bool
+    {
+        return $this->canPortal('access.use') && $this->telegram_access_revoked_at === null;
+    }
+
+    public function portalHome(): string
+    {
+        if (! $this->portalIsActive()) {
+            return '/portal/pending-approval';
+        }
+        if ($this->role?->name === 'manager') {
+            return '/portal/support';
+        }
+
+        return $this->canPortal('dashboard.read') ? '/portal' : '/portal/sites';
     }
 
     public function telegramIsLinked(): bool

@@ -10,7 +10,11 @@ return new class extends Migration
     {
         Schema::create('ftp_accounts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('site_id')->constrained()->cascadeOnDelete();
+            if (Schema::getConnection()->getDriverName() === 'sqlite') {
+                $table->foreignId('site_id')->nullable()->constrained()->nullOnDelete();
+            } else {
+                $table->foreignId('site_id')->constrained()->cascadeOnDelete();
+            }
             $table->string('host');
             $table->unsignedInteger('port')->default(21);
             $table->string('login')->nullable();

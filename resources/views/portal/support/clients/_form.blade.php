@@ -5,16 +5,16 @@
 <div class="row g-3">
     <div class="col-lg-6">
         <label class="form-label">ПІБ клієнта</label>
-        <input name="full_name" class="form-control" value="{{ old('full_name', $client->full_name) }}">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="full_name" class="form-control" value="{{ old('full_name', $client->full_name) }}">
     </div>
     <div class="col-lg-6">
         <label class="form-label">Компанія клієнта</label>
-        <input name="company_name" class="form-control" value="{{ old('company_name', $client->company_name) }}" placeholder="Наприклад: Смарт Груп">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="company_name" class="form-control" value="{{ old('company_name', $client->company_name) }}" placeholder="Наприклад: Смарт Груп">
     </div>
 
     <div class="col-lg-6">
         <label class="form-label">{{ __('portal.company') }} (валідація)</label>
-        <select name="company_id" class="form-select">
+        <select @disabled(! auth()->user()->canPortal('support.write')) name="company_id" class="form-select">
             <option value="">{{ __('portal.empty') }}</option>
             @foreach($companies as $company)
                 <option value="{{ $company->id }}" @selected((string) $selectedCompanyId === (string) $company->id)>{{ $company->name }}</option>
@@ -25,11 +25,11 @@
 
     <div class="col-lg-4">
         <label class="form-label">Telegram ID користувача</label>
-        <input name="telegram_user_id" class="form-control" value="{{ old('telegram_user_id', $client->telegram_user_id) }}" required>
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="telegram_user_id" class="form-control" value="{{ old('telegram_user_id', $client->telegram_user_id) }}" required>
     </div>
     <div class="col-lg-4">
         <label class="form-label">Telegram chat ID</label>
-        <input name="telegram_chat_id" class="form-control" value="{{ old('telegram_chat_id', $client->telegram_chat_id) }}" required>
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="telegram_chat_id" class="form-control" value="{{ old('telegram_chat_id', $client->telegram_chat_id) }}" required>
     </div>
     <div class="col-lg-4">
         <label class="form-label" title="Службовий стан, який показує, на якому кроці бот зараз працює з клієнтом. Його змінює сама система, вручну краще не чіпати.">
@@ -45,32 +45,32 @@
 
     <div class="col-lg-4">
         <label class="form-label">Telegram username</label>
-        <input name="telegram_username" class="form-control" value="{{ old('telegram_username', $client->telegram_username) }}" placeholder="@username">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="telegram_username" class="form-control" value="{{ old('telegram_username', $client->telegram_username) }}" placeholder="@username">
     </div>
     <div class="col-lg-4">
         <label class="form-label">Ім'я в Telegram</label>
-        <input name="telegram_first_name" class="form-control" value="{{ old('telegram_first_name', $client->telegram_first_name) }}">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="telegram_first_name" class="form-control" value="{{ old('telegram_first_name', $client->telegram_first_name) }}">
     </div>
     <div class="col-lg-4">
         <label class="form-label">Прізвище в Telegram</label>
-        <input name="telegram_last_name" class="form-control" value="{{ old('telegram_last_name', $client->telegram_last_name) }}">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="telegram_last_name" class="form-control" value="{{ old('telegram_last_name', $client->telegram_last_name) }}">
     </div>
 
     <div class="col-lg-4">
         <label class="form-label">Email</label>
-        <input name="email" class="form-control" value="{{ old('email', $client->email) }}">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="email" class="form-control" value="{{ old('email', $client->email) }}">
     </div>
     <div class="col-lg-4">
         <label class="form-label">Телефон</label>
-        <input name="phone" class="form-control" value="{{ old('phone', $client->phone) }}">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="phone" class="form-control" value="{{ old('phone', $client->phone) }}">
     </div>
     <div class="col-lg-4">
         <label class="form-label">Посада</label>
-        <input name="position" class="form-control" value="{{ old('position', $client->position) }}">
+        <input @readonly(! auth()->user()->canPortal('support.write')) name="position" class="form-control" value="{{ old('position', $client->position) }}">
     </div>
 
     <div class="col-12">
         <label class="form-label">Опис клієнта</label>
-        <textarea name="description" class="form-control" rows="5" placeholder="Короткі примітки про клієнта, нюанси чи домовленості">{{ old('description', $client->description) }}</textarea>
+        <textarea @readonly(! auth()->user()->canPortal('support.write')) name="description" class="form-control" rows="5" placeholder="Короткі примітки про клієнта, нюанси чи домовленості">{{ old('description', $client->description) }}</textarea>
     </div>
 </div>

@@ -1,6 +1,9 @@
 @extends('layouts.portal')
 
 @section('content')
+@if($interruptedUpdates)
+<div class="alert alert-warning">Перервані події Telegram: {{ $interruptedUpdates }}. Потрібна звірка адміністратором; автоматичне повторне надсилання зупинене, щоб уникнути дублів.</div>
+@endif
 <div class="portal-card p-4 mb-3">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
@@ -8,7 +11,7 @@
             <div class="portal-soft small">Коротка статистика по підтримці та список звернень.</div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <a class="btn btn-outline-secondary btn-sm" href="{{ route('portal.support.analytics') }}">Аналітика</a>
+            @can('support.read')<a class="btn btn-outline-secondary btn-sm" href="{{ route('portal.support.analytics') }}">Аналітика</a>@endcan
             <span class="portal-chip"><i class="bi bi-inboxes"></i><span>{{ $tickets->total() }}</span></span>
         </div>
     </div>
@@ -127,7 +130,7 @@
                     </td>
                     <td class="text-nowrap">{{ $ticket->created_at?->format('d.m.Y H:i') }}</td>
                     <td class="text-nowrap">
-                        <a class="btn btn-sm btn-primary" href="{{ route('portal.support.show', $ticket) }}">{{ __('portal.details') }}</a>
+                        @can('support.read')<a class="btn btn-sm btn-primary" href="{{ route('portal.support.show', $ticket) }}">{{ __('portal.details') }}</a>@endcan
                     </td>
                 </tr>
             @empty

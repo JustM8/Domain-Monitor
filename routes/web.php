@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('portal.dashboard') : view('welcome');
+    return auth()->check() ? redirect(auth()->user()->portalHome()) : view('welcome');
 });
 
 Auth::routes(['verify' => true]);
@@ -37,3 +37,6 @@ require app_path('Modules/Hosting/routes/web.php');
 require app_path('Modules/UserManagement/routes/web.php');
 require app_path('Modules/Audit/routes/web.php');
 require app_path('Modules/TelegramSupport/routes/web.php');
+
+require app_path('Modules/TelegramAccess/routes/web.php');
+require app_path('Modules/Monitoring/routes/web.php');

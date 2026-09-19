@@ -86,7 +86,7 @@
                 @method('PUT')
                 <div>
                     <label class="form-label">{{ __('portal.company') }}</label>
-                    <select name="company_id" class="form-select">
+                    <select name="company_id" class="form-select" @disabled(! auth()->user()->canPortal('hosting-accounts.write'))>
                         <option value="">{{ __('portal.company') }}</option>
                         @foreach($companies as $company)
                             <option value="{{ $company->id }}" @selected($account->company_id === $company->id)>{{ $company->name }}</option>
@@ -95,7 +95,7 @@
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.hosting') }}</label>
-                    <select name="hosting_id" class="form-select" required>
+                    <select name="hosting_id" class="form-select" required @disabled(! auth()->user()->canPortal('hosting-accounts.write'))>
                         @foreach($hostings as $hosting)
                             <option value="{{ $hosting->id }}" @selected($account->hosting_id === $hosting->id)>{{ $hosting->name }}</option>
                         @endforeach
@@ -104,7 +104,7 @@
                 <div>
                     <label class="form-label">{{ __('portal.linked_sites') }}</label>
                     <div class="portal-tags-box" data-tags-input data-tags-name="site_ids" data-tags-placeholder="{{ __('portal.new_tag') }}" data-tags-options='@json($sites->map(fn ($site) => ["id" => $site->id, "label" => $site->name, "search" => trim(($site->url ?? "") . " " . ($site->siteTypeLabel() ?? "") . " " . ($site->environmentLabel() ?? ""))])->values())' data-tags-selected='@json($account->sites->pluck("id")->values())'>
-                        <input type="text" class="portal-tags-input" data-tags-input-field placeholder="{{ __('portal.new_tag') }}">
+                        <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) type="text" class="portal-tags-input" data-tags-input-field placeholder="{{ __('portal.new_tag') }}">
                         <div class="portal-tags-suggestions d-none" data-tags-suggestions></div>
                         <div class="portal-tags-list" data-tags-list></div>
                         <div data-tags-hidden></div>
@@ -112,37 +112,37 @@
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.name') }}</label>
-                    <input name="title" class="form-control" value="{{ $account->title }}" required>
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="title" class="form-control" value="{{ $account->title }}" required>
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.login_label') }}</label>
-                    <input name="login" class="form-control" value="{{ $account->login }}" placeholder="{{ __('portal.login_label') }}">
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="login" class="form-control" value="{{ $account->login }}" placeholder="{{ __('portal.login_label') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.password') }}</label>
-                    <input name="password" class="form-control" placeholder="{{ __('portal.password') }}">
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="password" class="form-control" placeholder="{{ __('portal.password') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.ssh_host') }}</label>
-                    <input name="ssh_host" class="form-control" value="{{ $account->ssh_host }}" placeholder="{{ __('portal.ssh_host') }}">
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="ssh_host" class="form-control" value="{{ $account->ssh_host }}" placeholder="{{ __('portal.ssh_host') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.ssh_port') }}</label>
-                    <input name="ssh_port" class="form-control" type="number" value="{{ $account->ssh_port }}">
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="ssh_port" class="form-control" type="number" value="{{ $account->ssh_port }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.ssh_login') }}</label>
-                    <input name="ssh_login" class="form-control" value="{{ $account->ssh_login }}" placeholder="{{ __('portal.ssh_login') }}">
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="ssh_login" class="form-control" value="{{ $account->ssh_login }}" placeholder="{{ __('portal.ssh_login') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.ssh_password') }}</label>
-                    <input name="ssh_password" class="form-control" placeholder="{{ __('portal.ssh_password') }}">
+                    <input @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="ssh_password" class="form-control" placeholder="{{ __('portal.ssh_password') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.note') }}</label>
-                    <textarea name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $account->note }}</textarea>
+                    <textarea @readonly(! auth()->user()->canPortal('hosting-accounts.write')) name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $account->note }}</textarea>
                 </div>
-                <button class="btn btn-dark">{{ __('portal.save') }}</button>
+                @can('hosting-accounts.write')<button class="btn btn-dark">{{ __('portal.save') }}</button>@endcan
             </form>
         </div>
     </div>

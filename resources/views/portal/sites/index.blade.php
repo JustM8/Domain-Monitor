@@ -8,12 +8,12 @@
             <div class="portal-soft small">{{ __('portal.sites_list_hint') }}</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-primary" href="{{ route('portal.sites.add') }}">
+            @can('sites.write')<a class="btn btn-primary" href="{{ route('portal.sites.add') }}">
                 <i class="bi bi-plus-circle me-1"></i>{{ __('portal.add_site') }}
-            </a>
-            <a class="btn btn-outline-secondary" href="{{ route('portal.trash.index') }}">
+            </a>@endcan
+            @can('trash.read')<a class="btn btn-outline-secondary" href="{{ route('portal.trash.index') }}">
                 <i class="bi bi-trash3 me-1"></i>{{ __('portal.trash') }}
-            </a>
+            </a>@endcan
         </div>
     </div>
 </div>
@@ -60,6 +60,7 @@
                 @endforeach
             </select>
         </div>
+        <div class="col-lg-2"><label class="form-label">Відображення</label><select name="display_mode" class="form-select"><option value="">Усі</option><option value="standalone" @selected(request('display_mode') === 'standalone')>Окремий сайт</option><option value="iframe" @selected(request('display_mode') === 'iframe')>iframe</option></select></div>
         <div class="col-12">
             <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
         </div>
@@ -86,7 +87,7 @@
                         <div class="fw-semibold">{{ $site->name }}</div>
                         <div class="portal-soft small text-truncate" style="max-width: 260px;">{{ $site->url }}</div>
                     </td>
-                    <td>{{ $site->siteTypeLabel() }}</td>
+                    <td>{{ $site->siteTypeLabel() }} @if($site->display_mode === 'iframe')<span class="badge text-bg-light">iframe</span>@endif</td>
                     <td>{{ $site->environmentLabel() }}</td>
                     <td>
                         <div class="d-flex flex-column gap-2">
@@ -106,13 +107,13 @@
                             <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" href="{{ $site->url }}">
                                 <i class="bi bi-box-arrow-up-right me-1"></i>{{ __('portal.open') }}
                             </a>
-                            <form method="POST" action="{{ route('portal.sites.check', $site) }}">
+                            @can('sites.read')<form method="POST" action="{{ route('portal.sites.check', $site) }}">
                                 @csrf
                                 <button class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-shield-check me-1"></i>200
                                 </button>
-                            </form>
-                            <a class="btn btn-sm btn-primary" href="{{ route('portal.sites.show', $site) }}">{{ __('portal.details') }}</a>
+                            </form>@endcan
+                            @can('sites.read')<a class="btn btn-sm btn-primary" href="{{ route('portal.sites.show', $site) }}">{{ __('portal.details') }}</a>@endcan
                         </div>
                     </td>
                 </tr>

@@ -6,8 +6,8 @@
 @section('content')
 @php
     $projectPalette = ['#7a8491', '#8f829a', '#76897f'];
-    $projectMax = max(1, ...$siteTypeCounts->toArray());
-    $statusMax = max(1, ...$statusCounts->toArray());
+    $projectMax = max([1, ...array_values($siteTypeCounts->toArray())]);
+    $statusMax = max([1, ...array_values($statusCounts->toArray())]);
 @endphp
 
 <div class="portal-card p-3 p-xl-4 mb-3">
@@ -16,18 +16,18 @@
             <h1 class="h4 fw-semibold mb-0">{{ __('portal.dashboard') }}</h1>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-primary btn-sm px-3" href="{{ route('portal.sites.index') }}">
+            @can('sites.read')<a class="btn btn-primary btn-sm px-3" href="{{ route('portal.sites.index') }}">
                 <i class="bi bi-plus-circle me-1"></i>{{ __('portal.add_site') }}
-            </a>
+            </a>@endcan
             @if(auth()->user()?->isAdmin() || auth()->user()?->isPm())
-                <a class="btn btn-outline-secondary btn-sm px-3" href="{{ route('portal.statuses.index') }}">
+                @can('statuses.read')<a class="btn btn-outline-secondary btn-sm px-3" href="{{ route('portal.statuses.index') }}">
                     <i class="bi bi-tags me-1"></i>{{ __('portal.statuses_settings') }}
-                </a>
+                </a>@endcan
             @endif
             @if(auth()->user()?->isAdmin())
-                <a class="btn btn-outline-secondary btn-sm px-3" href="{{ route('portal.activity.index') }}">
+                @can('activity.read')<a class="btn btn-outline-secondary btn-sm px-3" href="{{ route('portal.activity.index') }}">
                     <i class="bi bi-journal-text me-1"></i>{{ __('portal.activity_log') }}
-                </a>
+                </a>@endcan
             @endif
         </div>
     </div>
@@ -77,7 +77,7 @@
         <div class="portal-card p-3 h-100">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <h2 class="h6 mb-0">{{ __('portal.recent_sites') }}</h2>
-                <a class="btn btn-sm btn-outline-secondary" href="{{ route('portal.sites.index') }}">{{ __('portal.open') }}</a>
+                @can('sites.read')<a class="btn btn-sm btn-outline-secondary" href="{{ route('portal.sites.index') }}">{{ __('portal.open') }}</a>@endcan
             </div>
 
             @if($recentSites->isEmpty())
@@ -111,7 +111,7 @@
                                     <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" href="{{ $site->url }}">
                                         <i class="bi bi-box-arrow-up-right"></i>
                                     </a>
-                                    <a class="btn btn-sm btn-primary" href="{{ route('portal.sites.show', $site) }}">{{ __('portal.details') }}</a>
+                                    @can('sites.read')<a class="btn btn-sm btn-primary" href="{{ route('portal.sites.show', $site) }}">{{ __('portal.details') }}</a>@endcan
                                 </div>
                             </div>
                         </div>
@@ -142,9 +142,9 @@
                         5
                     </button>
                     @if(auth()->user()?->isAdmin())
-                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('portal.activity.index') }}">
+                        @can('activity.read')<a class="btn btn-sm btn-outline-secondary" href="{{ route('portal.activity.index') }}">
                             <i class="bi bi-journal-text me-1"></i>{{ __('portal.activity_log') }}
-                        </a>
+                        </a>@endcan
                     @endif
                 </div>
             </div>

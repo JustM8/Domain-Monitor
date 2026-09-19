@@ -10,21 +10,21 @@
                 @method('PUT')
                 <div>
                     <label class="form-label">{{ __('portal.company_name') }}</label>
-                    <input name="name" class="form-control" value="{{ $company->name }}" required>
+                    <input @readonly(! auth()->user()->canPortal('companies.write')) name="name" class="form-control" value="{{ $company->name }}" required>
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.manager') }}</label>
-                    <input name="manager_name" class="form-control" value="{{ $company->manager_name }}" placeholder="{{ __('portal.manager') }}">
+                    <input @readonly(! auth()->user()->canPortal('companies.write')) name="manager_name" class="form-control" value="{{ $company->manager_name }}" placeholder="{{ __('portal.manager') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.contact') }}</label>
-                    <input name="contact" class="form-control" value="{{ $company->contact }}" placeholder="{{ __('portal.contact') }}">
+                    <input @readonly(! auth()->user()->canPortal('companies.write')) name="contact" class="form-control" value="{{ $company->contact }}" placeholder="{{ __('portal.contact') }}">
                 </div>
                 <div>
                     <label class="form-label">{{ __('portal.note') }}</label>
-                    <textarea name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $company->note }}</textarea>
+                    <textarea @readonly(! auth()->user()->canPortal('companies.write')) name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $company->note }}</textarea>
                 </div>
-                <button class="btn btn-dark">{{ __('portal.save') }}</button>
+                @can('companies.write')<button class="btn btn-dark">{{ __('portal.save') }}</button>@endcan
             </form>
         </div>
     </div>
@@ -51,9 +51,9 @@
             <h2 class="h5 mb-3">{{ __('portal.sites') }}</h2>
             <div class="d-flex flex-wrap gap-2">
                 @forelse($company->sites as $site)
-                    <a class="badge text-bg-light border text-decoration-none" href="{{ route('portal.sites.show', $site) }}">
+                    @can('sites.read')<a class="badge text-bg-light border text-decoration-none" href="{{ route('portal.sites.show', $site) }}">
                         {{ $site->name }} | {{ $site->siteTypeLabel() }} | {{ $site->environmentLabel() }}
-                    </a>
+                    </a>@endcan
                 @empty
                     <div class="portal-soft">{{ __('portal.empty') }}</div>
                 @endforelse
@@ -64,9 +64,9 @@
             <h2 class="h5 mb-3">{{ __('portal.ftp') }}</h2>
             <div class="d-flex flex-wrap gap-2">
                 @forelse($company->ftpAccounts as $ftp)
-                    <a class="badge text-bg-light border text-decoration-none" href="{{ route('portal.ftp.edit', $ftp) }}">
+                    @can('ftp.read')<a class="badge text-bg-light border text-decoration-none" href="{{ route('portal.ftp.edit', $ftp) }}">
                         {{ $ftp->host }}:{{ $ftp->port }}
-                    </a>
+                    </a>@endcan
                 @empty
                     <div class="portal-soft">{{ __('portal.empty') }}</div>
                 @endforelse
@@ -77,9 +77,9 @@
             <h2 class="h5 mb-3">{{ __('portal.hosting_accounts') }}</h2>
             <div class="d-flex flex-wrap gap-2">
                 @forelse($company->hostingAccounts as $hostingAccount)
-                    <a class="badge text-bg-light border text-decoration-none" href="{{ route('portal.hosting-accounts.edit', $hostingAccount) }}">
+                    @can('hosting-accounts.read')<a class="badge text-bg-light border text-decoration-none" href="{{ route('portal.hosting-accounts.edit', $hostingAccount) }}">
                         {{ $hostingAccount->title }}
-                    </a>
+                    </a>@endcan
                 @empty
                     <div class="portal-soft">{{ __('portal.empty') }}</div>
                 @endforelse

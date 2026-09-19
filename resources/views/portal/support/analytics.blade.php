@@ -56,7 +56,7 @@
             <h1 class="h4 mb-1">Support аналітика</h1>
             <div class="support-analytics-subtle small">Проста візуалізація звернень, оцінок, груп і менеджерів.</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.support.index') }}">До списку звернень</a>
+        @can('support.read')<a class="btn btn-outline-secondary" href="{{ route('portal.support.index') }}">До списку звернень</a>@endcan
     </div>
 </div>
 

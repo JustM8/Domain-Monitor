@@ -210,6 +210,12 @@
             padding: .6rem;
         }
 
+        .portal-account-menu { position: relative; }
+        .portal-account-menu > summary { list-style: none; cursor: pointer; }
+        .portal-account-menu > summary::-webkit-details-marker { display: none; }
+        .portal-account-menu > summary:focus-visible { outline: 3px solid var(--portal-primary); outline-offset: 3px; }
+        .portal-account-menu > .portal-user-menu { position: absolute; right: 0; top: calc(100% + 8px); width: min(300px, 85vw); color: var(--portal-text); }
+        .portal-section-label { border-top: 1px solid var(--portal-sidebar-border); }
         .portal-user-menu {
             min-width: 280px;
         }
@@ -485,6 +491,8 @@
             .portal-dropdown { min-width: min(92vw, 340px); }
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/portal-ui.css') }}?v=20260914">
+    <script src="{{ asset('js/portal-ui.js') }}?v=20260914" defer></script>
     @stack('styles')
 </head>
 <body class="portal-body" data-theme="light">
@@ -493,7 +501,7 @@
     $pageSubtitle = $__env->hasSection('page_subtitle')
         ? trim($__env->yieldContent('page_subtitle'))
         : '';
-        $notificationItems = \App\Modules\Shared\Models\ActivityLog::with(['user', 'subject'])
+        $notificationItems = auth()->user()->canPortal('activity.read') ? \App\Modules\Shared\Models\ActivityLog::with(['user', 'subject'])
         ->latest()
         ->limit(6)
         ->get()
@@ -502,82 +510,43 @@
                 'title' => $activity->actionLabel(),
                 'subtitle' => trim(($activity->user?->displayName() ?? __('portal.system')) . ' | ' . $activity->created_at?->diffForHumans()),
             ];
-        });
+        }) : collect();
 @endphp
 <div class="portal-shell d-flex">
-    <aside class="portal-sidebar p-3 p-lg-4">
+    <button class="portal-nav-backdrop" type="button" aria-label="Закрити навігацію" tabindex="-1" hidden></button>
+    <aside id="portal-navigation" class="portal-sidebar p-3 p-lg-4" tabindex="-1">
         <div class="d-flex align-items-center justify-content-between gap-3 mb-4">
-            <a class="portal-brand" href="{{ route('portal.dashboard') }}">
+            <a class="portal-brand" href="{{ auth()->user()->portalHome() }}">
                 <div class="portal-brand-title fw-semibold fs-4 lh-sm">{{ __('portal.title') }}</div>
             </a>
         </div>
 
+        <button class="portal-nav-close btn btn-outline-light" type="button" aria-label="Закрити меню"><i class="bi bi-x-lg"></i></button>
         <div class="mb-4">
-            <div class="portal-section-label">{{ __('portal.navigation') }}</div>
             <nav class="nav flex-column mb-3">
-                <a class="nav-link {{ request()->routeIs('portal.dashboard') ? 'active' : '' }}" href="{{ route('portal.dashboard') }}">
-                    <i class="bi bi-grid me-2"></i>{{ __('portal.dashboard') }}
-                </a>
-                <a class="nav-link {{ request()->routeIs('portal.sites.*') ? 'active' : '' }}" href="{{ route('portal.sites.index') }}">
-                    <i class="bi bi-globe2 me-2"></i>{{ __('portal.sites') }}
-                </a>
-            </nav>
-            <div class="portal-section-label">{{ __('portal.system') }}</div>
-            <nav class="nav flex-column mb-3">
-                    @if(auth()->user()?->isAdmin() || auth()->user()?->isPm())
-                        <a class="nav-link {{ request()->routeIs('portal.companies.*') ? 'active' : '' }}" href="{{ route('portal.companies.index') }}">
-                            <i class="bi bi-buildings me-2"></i>{{ __('portal.companies') }}
-                        </a>
-                        <a class="nav-link {{ request()->routeIs('portal.statuses.*') ? 'active' : '' }}" href="{{ route('portal.statuses.index') }}">
-                            <i class="bi bi-tags me-2"></i>{{ __('portal.statuses_settings') }}
-                        </a>
-                        <a class="nav-link {{ request()->routeIs('portal.trash.*') ? 'active' : '' }}" href="{{ route('portal.trash.index') }}">
-                            <i class="bi bi-trash3 me-2"></i>{{ __('portal.trash') }}
-                        </a>
-                    @endif
-                @if(auth()->user()?->isAdmin() || auth()->user()?->isDeveloper())
-                    <a class="nav-link {{ request()->routeIs('portal.ftp.*') ? 'active' : '' }}" href="{{ route('portal.ftp.index') }}">
-                        <i class="bi bi-hdd-network me-2"></i>{{ __('portal.ftp') }}
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('portal.hosting.*') ? 'active' : '' }}" href="{{ route('portal.hosting.index') }}">
-                        <i class="bi bi-server me-2"></i>{{ __('portal.hosting') }}
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('portal.hosting-accounts.*') ? 'active' : '' }}" href="{{ route('portal.hosting-accounts.index') }}">
-                        <i class="bi bi-diagram-3 me-2"></i>{{ __('portal.hosting_accounts') }}
-                    </a>
-                @endif
-            </nav>
-            @if(auth()->user()?->isAdmin())
-                <div class="portal-section-label">{{ __('portal.support.section') }}</div>
-                <nav class="nav flex-column mb-3">
-                    <a class="nav-link {{ request()->routeIs('portal.support.index', 'portal.support.show') ? 'active' : '' }}" href="{{ route('portal.support.index') }}">
-                        <i class="bi bi-life-preserver me-2"></i>{{ __('portal.support.tickets') }}
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('portal.support.analytics') ? 'active' : '' }}" href="{{ route('portal.support.analytics') }}">
-                        <i class="bi bi-bar-chart-line me-2"></i>{{ __('portal.support.analytics') }}
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('portal.support.clients.*') ? 'active' : '' }}" href="{{ route('portal.support.clients.index') }}">
-                        <i class="bi bi-people me-2"></i>{{ __('portal.support.clients') }}
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('portal.support.settings*') ? 'active' : '' }}" href="{{ route('portal.support.settings') }}">
-                        <i class="bi bi-gear me-2"></i>{{ __('portal.support.settings') }}
-                    </a>
-                </nav>
-                <div class="portal-section-label">{{ __('portal.users') }}</div>
-                <nav class="nav flex-column mb-3">
-                    <a class="nav-link {{ request()->routeIs('portal.users.*') ? 'active' : '' }}" href="{{ route('portal.users.index') }}">
-                        <i class="bi bi-people me-2"></i>{{ __('portal.users') }}
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('portal.activity.*') ? 'active' : '' }}" href="{{ route('portal.activity.index') }}">
-                        <i class="bi bi-journal-text me-2"></i>{{ __('portal.activity_log') }}
-                    </a>
-                </nav>
-            @endif
-            <div class="portal-section-label">{{ __('portal.profile') }}</div>
-            <nav class="nav flex-column">
-                <a class="nav-link {{ request()->routeIs('portal.profile.*') ? 'active' : '' }}" href="{{ route('portal.profile.edit') }}">
-                    <i class="bi bi-person-circle me-2"></i>{{ __('portal.profile') }}
-                </a>
+                @canany(["dashboard.read","monitoring.read"])<div class="portal-section-label mt-3 pt-2">Огляд</div>@endcanany
+                @can('dashboard.read')<a class="nav-link {{ request()->routeIs('portal.dashboard') ? 'active' : '' }}" href="{{ route('portal.dashboard') }}"><i class="bi bi-grid me-2"></i>Дашборд</a>@endcan
+                @can('monitoring.read')<a class="nav-link {{ request()->routeIs('portal.monitoring.*') ? 'active' : '' }}" href="{{ route('portal.monitoring.index') }}"><i class="bi bi-activity me-2"></i>Моніторинг</a>@endcan
+                @canany(["sites.read","companies.read","statuses.read"])<div class="portal-section-label mt-3 pt-2">Проєкти</div>@endcanany
+                @can('sites.read')<a class="nav-link {{ request()->routeIs('portal.sites.*') ? 'active' : '' }}" href="{{ route('portal.sites.index') }}"><i class="bi bi-globe2 me-2"></i>Сайти</a>@endcan
+                @can('companies.read')<a class="nav-link {{ request()->routeIs('portal.companies.*') ? 'active' : '' }}" href="{{ route('portal.companies.index') }}"><i class="bi bi-buildings me-2"></i>Компанії</a>@endcan
+                @can('statuses.read')<a class="nav-link {{ request()->routeIs('portal.statuses.*') ? 'active' : '' }}" href="{{ route('portal.statuses.index') }}"><i class="bi bi-tags me-2"></i>Статуси</a>@endcan
+                @canany(["ftp.read","hosting.read","hosting-accounts.read"])<div class="portal-section-label mt-3 pt-2">Технічні доступи</div>@endcanany
+                @can('ftp.read')<a class="nav-link {{ request()->routeIs('portal.ftp.*') ? 'active' : '' }}" href="{{ route('portal.ftp.index') }}"><i class="bi bi-hdd-network me-2"></i>FTP</a>@endcan
+                @can('hosting.read')<a class="nav-link {{ request()->routeIs('portal.hosting.*') ? 'active' : '' }}" href="{{ route('portal.hosting.index') }}"><i class="bi bi-server me-2"></i>Хостинги</a>@endcan
+                @can('hosting-accounts.read')<a class="nav-link {{ request()->routeIs('portal.hosting-accounts.*') ? 'active' : '' }}" href="{{ route('portal.hosting-accounts.index') }}"><i class="bi bi-diagram-3 me-2"></i>Хостинг-акаунти</a>@endcan
+
+                @canany(["support.read"])<div class="portal-section-label mt-3 pt-2">Підтримка</div>@endcanany
+                @can('support.read')<a class="nav-link {{ request()->routeIs('portal.support.index', 'portal.support.show') ? 'active' : '' }}" href="{{ route('portal.support.index') }}"><i class="bi bi-life-preserver me-2"></i>Тікети підтримки</a>@endcan
+                @can('support.read')<a class="nav-link {{ request()->routeIs('portal.support.analytics') ? 'active' : '' }}" href="{{ route('portal.support.analytics') }}"><i class="bi bi-bar-chart-line me-2"></i>Аналітика підтримки</a>@endcan
+                @can('support.read')<a class="nav-link {{ request()->routeIs('portal.support.clients.*') ? 'active' : '' }}" href="{{ route('portal.support.clients.index') }}"><i class="bi bi-people me-2"></i>Клієнти підтримки</a>@endcan
+                @can('support.read')<a class="nav-link {{ request()->routeIs('portal.support.settings') ? 'active' : '' }}" href="{{ route('portal.support.settings') }}"><i class="bi bi-gear me-2"></i>Налаштування підтримки</a>@endcan
+                @canany(["users.read","activity.read","trash.read"])<div class="portal-section-label mt-3 pt-2">Адміністрування</div>@endcanany
+                @can('users.read')<a class="nav-link {{ request()->routeIs('portal.users.*') ? 'active' : '' }}" href="{{ route('portal.users.index') }}"><i class="bi bi-people me-2"></i>Користувачі</a>@endcan
+                @can('activity.read')<a class="nav-link {{ request()->routeIs('portal.activity.*') ? 'active' : '' }}" href="{{ route('portal.activity.index') }}"><i class="bi bi-journal-text me-2"></i>Журнал дій</a>@endcan
+                @can('trash.read')<a class="nav-link {{ request()->routeIs('portal.trash.*') ? 'active' : '' }}" href="{{ route('portal.trash.index') }}"><i class="bi bi-trash3 me-2"></i>Кошик</a>@endcan
+                <div class="portal-section-label mt-3 pt-2">Особисте</div>
+                <a class="nav-link {{ request()->routeIs('portal.profile.*') ? 'active' : '' }}" href="{{ route('portal.profile.edit') }}"><i class="bi bi-person-circle me-2"></i>Мій кабінет</a>
             </nav>
         </div>
     </aside>
@@ -585,6 +554,7 @@
     <div class="portal-main">
         <div class="portal-content">
             <div class="portal-topbar px-3 px-lg-4 py-2 mb-3">
+                <button class="portal-nav-open btn btn-outline-secondary" type="button" aria-controls="portal-navigation" aria-expanded="false"><i class="bi bi-list"></i><span class="visually-hidden">Відкрити меню</span></button>
                 <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
                     <div>
                         <div class="portal-page-title fw-semibold">{{ $pageTitle }}</div>
@@ -624,11 +594,11 @@
                             <i class="bi bi-clock-history"></i>
                             <span>{{ now()->format('d.m.Y H:i') }}</span>
                         </span>
-                        <div class="dropdown">
-                            <button class="portal-user-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <details class="portal-account-menu">
+                            <summary class="portal-user-trigger" aria-label="Меню користувача">
                                 {{ mb_strtoupper(mb_substr(auth()->user()->displayName(), 0, 1)) }}
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end portal-dropdown portal-user-menu">
+                            </summary>
+                            <div class="portal-dropdown portal-user-menu">
                                 <div class="portal-user-row">
                                     <div class="portal-user-avatar">
                                         {{ mb_strtoupper(mb_substr(auth()->user()->displayName(), 0, 1)) }}
@@ -662,7 +632,7 @@
                                     </form>
                                 </div>
                             </div>
-                        </div>
+                        </details>
                     </div>
                 </div>
             </div>
@@ -727,6 +697,19 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.portal-account-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.portal-account-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open'); menu.querySelector('summary').focus();
+    });
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     (function () {
@@ -1123,6 +1106,5 @@
 @stack('scripts')
 </body>
 </html>
-
 
 

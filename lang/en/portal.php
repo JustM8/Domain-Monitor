@@ -12,6 +12,7 @@ return [
     'ftp' => 'FTP',
     'users' => 'Users',
     'profile' => 'Profile',
+    'telegram_username' => 'Telegram username',
     'logout' => 'Logout',
     'login' => 'Login',
     'success' => 'Success',

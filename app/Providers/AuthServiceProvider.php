@@ -21,6 +21,9 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        foreach (\App\Modules\Shared\Support\PortalAccess::ABILITIES as $ability) {
+            \Illuminate\Support\Facades\Gate::define($ability, fn (\App\Models\User $user) => $user->canPortal($ability));
+        }
+        \Illuminate\Support\Facades\Gate::define('approve-user', [\App\Modules\Shared\Support\PortalAccess::class, 'canApprove']);
     }
 }

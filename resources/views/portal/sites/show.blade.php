@@ -17,7 +17,7 @@
             <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
                 <h1 class="h4 mb-0">{{ $site->name }}</h1>
                 <span class="badge rounded-pill text-bg-{{ $site->is_active ? 'success' : 'danger' }}">
-                    {{ $site->is_active ? __('portal.active') : __('portal.disabled') }}
+                    Бажаний стан: {{ $site->is_active ? __('portal.active') : __('portal.disabled') }}
                 </span>
                 @if($site->status)
                     <span class="badge rounded-pill" style="background-color: {{ $site->status->color }}; color: #fff;">
@@ -31,47 +31,48 @@
             <a class="btn btn-outline-secondary" target="_blank" rel="noopener" href="{{ $site->url }}">
                 <i class="bi bi-box-arrow-up-right me-1"></i>{{ __('portal.open') }}
             </a>
-            <form method="POST" action="{{ route('portal.sites.check', $site) }}">
+            @can('sites.read')<form method="POST" action="{{ route('portal.sites.check', $site) }}">
                 @csrf
                 <button class="btn btn-outline-primary">
                     <i class="bi bi-shield-check me-1"></i>200
                 </button>
-            </form>
-            <form method="POST" action="{{ route('portal.sites.sync', $site) }}">
+            </form>@endcan
+            @can('sites.control')<form method="POST" action="{{ route('portal.sites.sync', $site) }}">
                 @csrf
                 <button class="btn btn-outline-primary" @disabled(! $remoteControlEnabled) title="{{ $remoteControlEnabled ? '' : __('portal.remote_control_disabled_notice') }}">
                     <i class="bi bi-arrow-repeat me-1"></i>{{ __('portal.sync_now') }}
                 </button>
-            </form>
-            <button class="btn btn-outline-primary" type="button" data-edit-toggle>
+            </form>@endcan
+            @can('sites.write')<button class="btn btn-outline-primary" type="button" data-edit-toggle>
                 <i class="bi bi-pencil-square me-1"></i>{{ __('portal.edit') }}
-            </button>
+            </button>@endcan
             @if(auth()->user()->isAdmin() || auth()->user()->isPm())
-                <form method="POST" action="{{ route('portal.sites.remote-control', $site) }}">
+                @can('sites.control')<form method="POST" action="{{ route('portal.sites.remote-control', $site) }}">
                     @csrf
                     <button class="btn {{ $remoteControlEnabled ? 'btn-outline-danger' : 'btn-outline-success' }}">
                         <i class="bi bi-toggle-{{ $remoteControlEnabled ? 'on' : 'off' }} me-1"></i>
                         {{ $remoteControlEnabled ? __('portal.remote_control_disable') : __('portal.remote_control_enable') }}
                     </button>
-                </form>
+                </form>@endcan
             @endif
             @if($site->is_active)
-                <form method="POST" action="{{ route('portal.sites.disable', $site) }}">
+                @can('sites.control')<form method="POST" action="{{ route('portal.sites.disable', $site) }}">
                     @csrf
-                    <input type="hidden" name="disabled_reason" value="{{ __('portal.disabled_default_reason') }}">
+                    <input class="form-control mb-2" name="disabled_reason" placeholder="Причина вимкнення / блокування" maxlength="2000" required>
                     <button class="btn btn-warning">{{ __('portal.disable') }}</button>
-                </form>
+                </form>@endcan
             @else
-                <form method="POST" action="{{ route('portal.sites.enable', $site) }}">
+                @can('sites.control')<form method="POST" action="{{ route('portal.sites.enable', $site) }}">
                     @csrf
+                    <input name="control_reason" class="form-control mb-2" placeholder="Причина відновлення" required maxlength="2000">
                     <button class="btn btn-success">{{ __('portal.enable') }}</button>
-                </form>
+                </form>@endcan
             @endif
-            <form method="POST" action="{{ route('portal.sites.destroy', $site) }}" data-delete-confirm data-delete-subject="{{ $site->name }}">
+            @can('sites.delete')<form method="POST" action="{{ route('portal.sites.destroy', $site) }}" data-delete-confirm data-delete-subject="{{ $site->name }}">
                 @csrf
                 @method('DELETE')
                 <button class="btn btn-outline-danger">{{ __('portal.delete') }}</button>
-            </form>
+            </form>@endcan
         </div>
     </div>
 </div>
@@ -101,7 +102,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="portal-soft small">{{ __('portal.environment') }}</div>
-                    <div class="fw-semibold">{{ $site->environmentLabel() }}</div>
+                    <div class="fw-semibold">{{ $site->environmentLabel() }} · {{ $site->display_mode === 'iframe' ? 'iframe' : 'Окремий сайт' }}</div>
                 </div>
                 <div class="col-md-6">
                     <div class="portal-soft small">{{ __('portal.cms') }}</div>
@@ -164,6 +165,13 @@
                 @endif
             </div>
             <div class="mt-3">
+                <div class="small mb-2">
+                    Команда №{{ $site->control_version }}: {{ $site->is_active ? 'увімкнути' : 'вимкнути' }}.
+                    Підтверджено: {{ match ($site->confirmed_state) { 'active' => 'увімкнено', 'disabled' => 'вимкнено', default => 'немає підтвердження' } }} / №{{ $site->confirmed_control_version ?? '—' }}.
+                    @if($site->confirmed_control_version !== $site->control_version)
+                        <span class="text-warning-emphasis">Поточну команду ще не підтверджено.</span>
+                    @endif
+                </div>
                 <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-1">
                     <div class="portal-soft small">{{ __('portal.remote_control') }}</div>
                     <span class="badge text-bg-{{ $remoteControlEnabled ? 'success' : 'secondary' }}">
@@ -202,9 +210,9 @@
             <h2 class="h5 mb-1">{{ __('portal.edit_mode') }}</h2>
             <div class="portal-soft small">{{ __('portal.read_only_view') }}</div>
         </div>
-        <button class="btn btn-outline-secondary" type="button" data-edit-toggle>
+        @can('sites.write')<button class="btn btn-outline-secondary" type="button" data-edit-toggle>
             <i class="bi bi-x-circle me-1"></i>{{ __('portal.read_only_view') }}
-        </button>
+        </button>@endcan
     </div>
 
     <form method="POST" action="{{ route('portal.sites.update', $site) }}" class="row g-3">
@@ -212,15 +220,15 @@
         @method('PUT')
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.site_name') }}</label>
-            <input name="name" class="form-control" value="{{ $site->name }}" required>
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="name" class="form-control" value="{{ $site->name }}" required>
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.site_url') }}</label>
-            <input name="url" class="form-control" value="{{ $site->url }}" required>
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="url" class="form-control" value="{{ $site->url }}" required>
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.site_product_type') }}</label>
-            <select name="site_type" class="form-select">
+            <select name="site_type" class="form-select" @disabled(! auth()->user()->canPortal('sites.write'))>
                 @foreach($siteTypeOptions as $value => $label)
                     <option value="{{ $value }}" @selected($site->site_type === $value)>{{ __($label) }}</option>
                 @endforeach
@@ -228,36 +236,39 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.environment') }}</label>
-            <select name="environment" class="form-select">
+            <select name="environment" class="form-select" @disabled(! auth()->user()->canPortal('sites.write'))>
                 @foreach($environmentOptions as $value => $label)
                     <option value="{{ $value }}" @selected($site->environment === $value)>{{ __($label) }}</option>
                 @endforeach
             </select>
         </div>
+        @can('sites.control')
         <div class="col-12">
             <div class="form-check form-switch">
-                <input type="hidden" name="remote_control_enabled" value="0">
-                <input class="form-check-input" type="checkbox" role="switch" id="site-remote-control-edit" name="remote_control_enabled" value="1" @checked($remoteControlEnabled)>
+                <input @readonly(! auth()->user()->canPortal('sites.write')) type="hidden" name="remote_control_enabled" value="0">
+                <input @readonly(! auth()->user()->canPortal('sites.write')) class="form-check-input" type="checkbox" role="switch" id="site-remote-control-edit" name="remote_control_enabled" value="1" @checked($remoteControlEnabled) @disabled(! auth()->user()->canPortal('sites.write'))>
                 <label class="form-check-label" for="site-remote-control-edit">{{ __('portal.remote_control') }}</label>
             </div>
             <div class="portal-soft small">{{ __('portal.remote_control_hint') }}</div>
         </div>
+        @endcan
+        @include('portal.sites.presentation-fields')
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.admin_url') }}</label>
-            <input name="admin_url" class="form-control" value="{{ $site->admin_url }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="admin_url" class="form-control" value="{{ $site->admin_url }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.admin_login') }}</label>
-            <input name="admin_login" class="form-control" value="{{ $site->admin_login }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="admin_login" class="form-control" value="{{ $site->admin_login }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.admin_password') }}</label>
-            <input name="admin_password" type="password" class="form-control" value="{{ old('admin_password') }}" autocomplete="new-password" spellcheck="false" placeholder="{{ __('portal.edit') }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="admin_password" type="password" class="form-control" value="{{ old('admin_password') }}" autocomplete="new-password" spellcheck="false" placeholder="{{ __('portal.edit') }}">
             <div class="portal-soft small mt-1">{{ __('portal.admin_password_hint') }}</div>
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.status') }}</label>
-            <select name="status_id" class="form-select">
+            <select name="status_id" class="form-select" @disabled(! auth()->user()->canPortal('sites.write'))>
                 <option value="">{{ __('portal.status') }}</option>
                 @foreach($statuses as $status)
                     <option value="{{ $status->id }}" @selected($site->status_id === $status->id)>{{ __($status->name) }}</option>
@@ -266,7 +277,7 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.company') }}</label>
-            <select name="company_id" class="form-select">
+            <select name="company_id" class="form-select" @disabled(! auth()->user()->canPortal('sites.write'))>
                 <option value="">{{ __('portal.company') }}</option>
                 @foreach($companies as $company)
                     <option value="{{ $company->id }}" @selected($site->company_id === $company->id)>{{ $company->name }}</option>
@@ -275,29 +286,29 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.repo_url') }}</label>
-            <input name="repo_url" class="form-control" value="{{ $site->repo_url }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="repo_url" class="form-control" value="{{ $site->repo_url }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.branch') }}</label>
-            <input name="branch" class="form-control" value="{{ $site->branch }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="branch" class="form-control" value="{{ $site->branch }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.cms') }}</label>
-            <input name="cms" class="form-control" value="{{ $site->cms }}" placeholder="{{ __('portal.cms_hint') }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="cms" class="form-control" value="{{ $site->cms }}" placeholder="{{ __('portal.cms_hint') }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">{{ __('portal.version') }}</label>
-            <input name="version" class="form-control" value="{{ $site->version }}">
+            <input @readonly(! auth()->user()->canPortal('sites.write')) name="version" class="form-control" value="{{ $site->version }}">
         </div>
         <div class="col-12">
             <label class="form-label">{{ __('portal.note') }}</label>
-            <textarea name="note" class="form-control" rows="3">{{ $site->note }}</textarea>
+            <textarea @readonly(! auth()->user()->canPortal('sites.write')) name="note" class="form-control" rows="3">{{ $site->note }}</textarea>
         </div>
         <div class="col-12 d-flex gap-2 flex-wrap">
-            <button class="btn btn-primary">{{ __('portal.save') }}</button>
-            <button class="btn btn-outline-secondary" type="button" data-edit-toggle>
+            @can('sites.write')<button class="btn btn-primary">{{ __('portal.save') }}</button>@endcan
+            @can('sites.write')<button class="btn btn-outline-secondary" type="button" data-edit-toggle>
                 <i class="bi bi-arrow-counterclockwise me-1"></i>{{ __('portal.read_only_view') }}
-            </button>
+            </button>@endcan
         </div>
     </form>
 </div>
@@ -410,6 +421,16 @@
     </div>
 </div>
 
+<div class="portal-card p-4 mt-3">
+    <h2 class="h5">Історія команд керування</h2>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Час / виконавець</th><th>Версія / команда</th><th>Результат</th></tr></thead><tbody>
+    @forelse($controlAttempts as $attempt)
+    <tr><td>{{ $attempt->started_at }}<br>{{ $attempt->actor_name ?? 'Система' }}</td>
+    <td>№{{ $attempt->version }} · {{ $attempt->desired_state === 'active' ? 'Увімкнути' : 'Вимкнути' }}</td>
+    <td>{{ ['pending'=>'Очікує підтвердження','confirmed'=>'Підтверджено','failed'=>'Помилка','stale'=>'Застаріла відповідь','interrupted'=>'Перервано'][$attempt->status] ?? $attempt->status }}<div class="small">{{ $attempt->message }}</div></td></tr>
+    @empty<tr><td colspan="3">Спроб ще немає.</td></tr>@endforelse
+    </tbody></table></div>{{ $controlAttempts->links() }}
+</div>
 @push('scripts')
 <script>
     (function () {

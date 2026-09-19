@@ -12,6 +12,7 @@ return [
     'ftp' => 'FTP',
     'users' => 'Користувачі',
     'profile' => 'Кабінет',
+    'telegram_username' => 'Telegram username',
     'logout' => 'Вийти',
     'login' => 'Увійти',
     'success' => 'Успіх',

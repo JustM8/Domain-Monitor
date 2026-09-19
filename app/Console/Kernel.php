@@ -12,8 +12,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('domains:check')->everyMinute();
-        $schedule->command('portal:prune')->daily();
+        // Monitoring is launched by the hosting cron via monitoring:run.
     }
 
     /**
@@ -22,6 +21,9 @@ class Kernel extends ConsoleKernel
     protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');
+        $this->load(app_path('Modules/TelegramAccess/Console'));
+        $this->load(app_path('Modules/TelegramSupport/Console'));
+        $this->load(app_path('Modules/Monitoring/Console'));
 
         require base_path('routes/console.php');
     }

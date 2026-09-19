@@ -70,6 +70,7 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
             'role_id' => $role?->id,
             'is_active' => false,
+            'approval_status' => 'pending',
         ]);
     }
 }

@@ -8,16 +8,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
-        $allowedRoles = array_values(array_filter(array_map('trim', preg_split('/[|,]/', $role) ?: [])));
+        $allowedRoles = array_values(array_filter(array_map('trim', preg_split('/[|,]/', implode(',', $roles)) ?: [])));
 
-        if ($user && $user->email === 'admin@admin.com' && in_array('admin', $allowedRoles, true)) {
-            return $next($request);
-        }
-
-        if (! $user || ! $user->role || ! in_array($user->role->name, $allowedRoles, true)) {
+        if (! $user || ! $user->portalIsActive() || ! $user->role || ! in_array($user->role->name, $allowedRoles, true)) {
             abort(403);
         }
 

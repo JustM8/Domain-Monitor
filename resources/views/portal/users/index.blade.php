@@ -12,7 +12,7 @@
                 <input name="search" class="form-control" style="min-width: 260px;" placeholder="{{ __('portal.search') }}" value="{{ $search ?? request('search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <a class="btn btn-primary" href="{{ route('portal.users.add') }}">{{ __('portal.user_new') }}</a>
+            @can('users.write')<a class="btn btn-primary" href="{{ route('portal.users.add') }}">{{ __('portal.user_new') }}</a>@endcan
         </div>
     </div>
 
@@ -56,25 +56,27 @@
                     </td>
                     <td>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge text-bg-light">{{ ['pending' => 'Очікує підтвердження', 'active' => 'Активний', 'blocked' => 'Заблокований'][$user->approval_status] ?? $user->approval_status }}</span>
+                            @can('approve-user', $user)<form method="POST" action="{{ route('portal.users.approve', $user) }}">@csrf<button class="btn btn-sm btn-success">Підтвердити</button></form>@endcan
                             <span>{{ $user->is_active ? __('portal.yes') : __('portal.no') }}</span>
-                            <form method="POST" action="{{ route('portal.users.toggle-active', $user) }}">
+                            @can('users.write')<form method="POST" action="{{ route('portal.users.toggle-active', $user) }}">
                                 @csrf
                                 <button class="btn btn-sm btn-outline-secondary" @disabled($user->id === auth()->id())>
                                     {{ $user->is_active ? __('portal.freeze') : __('portal.unfreeze') }}
                                 </button>
-                            </form>
+                            </form>@endcan
                         </div>
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2 flex-wrap">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route('portal.users.edit', $user) }}">{{ __('portal.edit') }}</a>
+                            @can('users.write')<a class="btn btn-sm btn-outline-primary" href="{{ route('portal.users.edit', $user) }}">{{ __('portal.edit') }}</a>@endcan
                             @unless($user->hasVerifiedEmail())
-                                <form method="POST" action="{{ route('portal.users.send-verification', $user) }}">
+                                @can('users.write')<form method="POST" action="{{ route('portal.users.send-verification', $user) }}">
                                     @csrf
                                     <button class="btn btn-sm btn-outline-success">
                                         <i class="bi bi-send me-1"></i>{{ __('portal.send_verification') }}
                                     </button>
-                                </form>
+                                </form>@endcan
                             @endunless
                         </div>
                     </td>

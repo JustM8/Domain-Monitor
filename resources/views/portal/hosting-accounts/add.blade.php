@@ -7,9 +7,9 @@
             <h2 class="h5 mb-1">{{ __('portal.hosting_accounts') }}</h2>
             <div class="portal-soft small">{{ __('portal.hosting_accounts') }}</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.hosting-accounts.index') }}">{{ __('portal.hosting_accounts') }}</a>
+        @can('hosting-accounts.read')<a class="btn btn-outline-secondary" href="{{ route('portal.hosting-accounts.index') }}">{{ __('portal.hosting_accounts') }}</a>@endcan
     </div>
-    <form method="POST" action="{{ route('portal.hosting-accounts.store') }}" class="row g-3">
+    @can('hosting-accounts.write')<form method="POST" action="{{ route('portal.hosting-accounts.store') }}" class="row g-3">
         @csrf
         <div class="col-lg-4">
             <label class="form-label">{{ __('portal.company') }}</label>
@@ -47,7 +47,7 @@
         </div>
         <div class="col-lg-4">
             <label class="form-label">{{ __('portal.password') }}</label>
-            <input name="password" type="text" class="form-control" value="{{ old('password') }}" autocomplete="off" spellcheck="false">
+            <input type="password" name="password" class="form-control" value="{{ old('password') }}" autocomplete="off" spellcheck="false">
         </div>
         <div class="col-lg-4">
             <label class="form-label">{{ __('portal.ssh_host') }}</label>
@@ -63,7 +63,7 @@
         </div>
         <div class="col-12">
             <label class="form-label">{{ __('portal.ssh_password') }}</label>
-            <input name="ssh_password" type="text" class="form-control" value="{{ old('ssh_password') }}" autocomplete="off" spellcheck="false">
+            <input type="password" name="ssh_password" class="form-control" value="{{ old('ssh_password') }}" autocomplete="off" spellcheck="false">
         </div>
         <div class="col-12">
             <details class="portal-surface p-3">
@@ -77,6 +77,6 @@
         <div class="col-12">
             <button class="btn btn-primary">{{ __('portal.save') }}</button>
         </div>
-    </form>
+    </form>@endcan
 </div>
 @endsection

@@ -18,11 +18,11 @@ class SupportMessage extends Model
         'telegram_message_id',
         'telegram_chat_id',
         'telegram_username',
-        'sent_by_user_id',
+        'sent_by_user_id', 'delivery_status', 'delivery_error', 'delivered_at',
     ];
 
     protected $casts = [
-        'payload' => 'array',
+        'payload' => 'array', 'delivered_at' => 'datetime',
     ];
 
     public function ticket()

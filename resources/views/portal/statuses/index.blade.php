@@ -14,7 +14,7 @@
                 <input name="search" class="form-control" placeholder="{{ __('portal.search') }}" value="{{ $search ?? request('search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <form method="POST" action="{{ route('portal.statuses.store') }}" class="vstack gap-2">
+            @can('statuses.write')<form method="POST" action="{{ route('portal.statuses.store') }}" class="vstack gap-2">
                 @csrf
                 <input name="name" class="form-control" placeholder="{{ __('portal.name') }}" required>
                 <div class="row g-2">
@@ -27,7 +27,7 @@
                 </div>
                 <input name="sort_order" class="form-control" type="number" value="0" min="0" max="9999">
                 <button class="btn btn-primary">{{ __('portal.save') }}</button>
-            </form>
+            </form>@endcan
 
             <hr class="my-4">
 
@@ -35,10 +35,10 @@
                 <div>
                     <h3 class="h6 mb-0">{{ __('portal.default_statuses') }}</h3>
                 </div>
-                <form method="POST" action="{{ route('portal.statuses.sync-defaults') }}">
+                @can('statuses.write')<form method="POST" action="{{ route('portal.statuses.sync-defaults') }}">
                     @csrf
                     <button class="btn btn-sm btn-outline-secondary">{{ __('portal.default_statuses_sync') }}</button>
-                </form>
+                </form>@endcan
             </div>
 
             <div class="d-flex flex-wrap gap-2">
@@ -95,14 +95,14 @@
                                     <form id="status-edit-{{ $status->id }}" method="POST" action="{{ route('portal.statuses.update', $status) }}">
                                         @csrf
                                         @method('PUT')
-                                        <button class="btn btn-sm btn-outline-primary">{{ __('portal.save') }}</button>
+                                        @can('statuses.write')<button class="btn btn-sm btn-outline-primary">{{ __('portal.save') }}</button>@endcan
                                     </form>
-                                    <form method="POST" action="{{ route('portal.statuses.toggle-archive', $status) }}">
+                                    @can('statuses.write')<form method="POST" action="{{ route('portal.statuses.toggle-archive', $status) }}">
                                         @csrf
                                         <button class="btn btn-sm btn-outline-secondary">
                                             {{ $status->is_archived ? __('portal.restore') : __('portal.archive') }}
                                         </button>
-                                    </form>
+                                    </form>@endcan
                                 </div>
                             </td>
                         </tr>

@@ -8,9 +8,8 @@ use App\Modules\Shared\Models\Company;
 use App\Modules\Shared\Models\Status;
 use App\Modules\Site\Models\Site;
 use App\Modules\Site\Models\SiteRevision;
-use App\Services\SiteSyncService;
+use App\Modules\Site\Services\SiteSyncService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
@@ -38,6 +37,10 @@ class SiteController extends Controller
 
         if ($request->filled('site_type')) {
             $query->where('site_type', $request->string('site_type')->value());
+        }
+
+        if ($request->filled('display_mode')) {
+            $query->where('display_mode', $request->input('display_mode'));
         }
 
         if ($request->filled('environment')) {
@@ -77,10 +80,10 @@ class SiteController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'url' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'url:http,https', 'max:255'],
             'site_type' => ['required', 'in:site,3d,devbase'],
             'environment' => ['required', 'in:prod,dev'],
-            'admin_url' => ['nullable', 'string', 'max:255'],
+            'admin_url' => ['nullable', 'url:http,https', 'max:255'],
             'admin_login' => ['nullable', 'string', 'max:255'],
             'admin_password' => ['nullable', 'string', 'max:255'],
             'status_id' => ['nullable', 'exists:statuses,id'],
@@ -90,7 +93,7 @@ class SiteController extends Controller
             'cms' => ['nullable', 'string', 'max:255'],
             'version' => ['nullable', 'string', 'max:255'],
             'ssl' => ['nullable', 'boolean'],
-            'remote_control_enabled' => ['nullable', 'boolean'],
+            'remote_control_enabled' => [\Illuminate\Validation\Rule::prohibitedIf(! $request->user()->canPortal('sites.control')), 'nullable', 'boolean'],
             'note' => ['nullable', 'string'],
         ]);
 
@@ -98,14 +101,17 @@ class SiteController extends Controller
         $data['admin_password'] = $adminPassword !== '' ? Crypt::encryptString($adminPassword) : null;
         $data['api_token'] = Crypt::encryptString(Str::random(60));
         $data['ssl'] = $request->boolean('ssl');
-        $data['remote_control_enabled'] = $request->boolean('remote_control_enabled');
+        $data += app(\App\Modules\Site\Services\SitePresentation::class)->fromRequest($request);
+        if ($request->user()->canPortal('sites.control')) {
+            $data['remote_control_enabled'] = $request->boolean('remote_control_enabled');
+        }
         $data['is_active'] = true;
 
         $site = Site::create($data);
 
         $this->logRevision($site, 'create', [], $site->toArray());
         $this->logActivity($site, 'site.created', $site->toArray());
-        $sync = $this->syncRemoteControlIfEnabled($site, 'active');
+        $sync = null;
 
         $response = redirect()->route('portal.sites.show', $site)->with('success', __('portal.saved'));
 
@@ -135,10 +141,12 @@ class SiteController extends Controller
             'site' => $site,
             'statuses' => Status::orderBy('sort_order')->get(),
             'companies' => Company::orderBy('name')->get(),
-            'apiToken' => $site->api_token ? Crypt::decryptString($site->api_token) : null,
+            'apiToken' => auth()->user()->canPortal('sites.control') && $site->api_token ? Crypt::decryptString($site->api_token) : null,
             'siteTypeOptions' => Site::siteTypeOptions(),
             'environmentOptions' => Site::environmentOptions(),
             'adminPassword' => $site->decryptedAdminPassword(),
+            'controlAttempts' => \Illuminate\Support\Facades\DB::table('site_control_attempts as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')
+                ->where('a.site_id', $site->id)->select('a.*', 'u.name as actor_name')->orderByDesc('a.id')->paginate(20, ['*'], 'attempts_page'),
         ]);
     }
 
@@ -151,10 +159,10 @@ class SiteController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'url' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'url:http,https', 'max:255'],
             'site_type' => ['required', 'in:site,3d,devbase'],
             'environment' => ['required', 'in:prod,dev'],
-            'admin_url' => ['nullable', 'string', 'max:255'],
+            'admin_url' => ['nullable', 'url:http,https', 'max:255'],
             'admin_login' => ['nullable', 'string', 'max:255'],
             'admin_password' => ['nullable', 'string', 'max:255'],
             'status_id' => ['nullable', 'exists:statuses,id'],
@@ -164,7 +172,7 @@ class SiteController extends Controller
             'cms' => ['nullable', 'string', 'max:255'],
             'version' => ['nullable', 'string', 'max:255'],
             'ssl' => ['nullable', 'boolean'],
-            'remote_control_enabled' => ['nullable', 'boolean'],
+            'remote_control_enabled' => [\Illuminate\Validation\Rule::prohibitedIf(! $request->user()->canPortal('sites.control')), 'nullable', 'boolean'],
             'note' => ['nullable', 'string'],
         ]);
 
@@ -178,14 +186,15 @@ class SiteController extends Controller
         }
 
         $data['ssl'] = $request->boolean('ssl');
-        $data['remote_control_enabled'] = $request->boolean('remote_control_enabled');
-        $site->update($data);
+        $data += app(\App\Modules\Site\Services\SitePresentation::class)->fromRequest($request);
+        if ($request->user()->canPortal('sites.control')) {
+            $data['remote_control_enabled'] = $request->boolean('remote_control_enabled');
+        }
+        $site = app(\App\Modules\Site\Services\SiteMetadataService::class)->update($site, $data);
 
         $this->logRevision($site, 'update', $before, $site->fresh()->toArray());
         $this->logActivity($site, 'site.updated', ['before' => $before, 'after' => $site->fresh()->toArray()]);
-        $sync = $this->syncRemoteControlIfEnabled($site->fresh(), $site->is_active ? 'active' : 'disabled', [
-            'reason' => $site->disabled_reason,
-        ]);
+        $sync = null;
 
         $response = redirect()->route('portal.sites.show', $site)->with('success', __('portal.saved'));
 
@@ -208,30 +217,15 @@ class SiteController extends Controller
         return redirect()->route('portal.sites.index')->with('success', __('portal.deleted'));
     }
 
-    public function check(Site $site)
+    public function check(Site $site, \App\Modules\Monitoring\Services\SiteMonitor $monitor)
     {
-        $url = trim((string) $site->url);
-
-        if (! filter_var($url, FILTER_VALIDATE_URL)) {
-            return back()->with('error', __('portal.invalid_url'));
-        }
-
         try {
-            $response = Http::timeout(15)->retry(1, 200)->get($url);
-        } catch (\Throwable $e) {
-            $this->logActivity($site, 'site.check_failed', ['error' => $e->getMessage()]);
-
-            return back()->with('error', __('portal.check_failed'));
+            $result = $monitor->check($site, true);
+        } catch (\App\Modules\Monitoring\Services\CheckAlreadyRunning $e) {
+            return back()->with('warning', 'Перевірка вже виконується.');
         }
 
-        $statusCode = $response->status();
-        $this->logActivity($site, 'site.checked', ['status' => $statusCode, 'url' => $url]);
-
-        if ($statusCode === 200) {
-            return back()->with('success', __('portal.check_ok'));
-        }
-
-        return back()->with('error', __('portal.check_bad_status', ['status' => $statusCode]));
+        return back()->with($result['availability'] === 'down' ? 'warning' : 'success', 'Результат: '.($result['error'] ?: $result['availability']));
     }
 
     public function sync(Site $site)
@@ -273,65 +267,31 @@ class SiteController extends Controller
 
     public function disable(Request $request, Site $site)
     {
-        $data = $request->validate([
-            'disabled_reason' => ['required', 'string', 'max:2000'],
-        ]);
+        $data = $request->validate(['disabled_reason' => ['required', 'string', 'max:2000']]);
+        $site = app(\App\Modules\Site\Services\SiteControlService::class)->change($site, $request->user(), false, $data['disabled_reason']);
+        $result = app(SiteSyncService::class)->sync($site, 'disabled');
 
-        $before = $site->toArray();
-        $site->update([
-            'is_active' => false,
-            'disabled_reason' => $data['disabled_reason'],
-            'disabled_by' => auth()->id(),
-            'disabled_at' => now(),
-        ]);
-
-        $this->logRevision($site, 'disable', $before, $site->fresh()->toArray());
-        $this->logActivity($site, 'site.disabled', $data);
-        $sync = $this->syncRemoteControlIfEnabled($site->fresh(), 'disabled', [
-            'reason' => $data['disabled_reason'],
-        ]);
-
-        $response = back()->with('success', __('portal.site_disabled'));
-
-        if ($sync && ! $sync['ok']) {
-            $response->with('warning', __('portal.site_sync_failed_with_reason', [
-                'reason' => $this->syncFailureReason($sync),
-            ]));
-        }
-
-        return $response;
+        return back()->with($result['ok'] ? 'success' : 'warning', $result['message']);
     }
 
-    public function enable(Site $site)
+    public function enable(Request $request, Site $site)
     {
-        $before = $site->toArray();
-        $site->update([
-            'is_active' => true,
-            'disabled_reason' => null,
-            'disabled_by' => null,
-            'disabled_at' => null,
-        ]);
+        $data = $request->validate(['control_reason' => ['required', 'string', 'max:2000']]);
+        $site = app(\App\Modules\Site\Services\SiteControlService::class)->change($site, $request->user(), true, $data['control_reason']);
+        $result = app(SiteSyncService::class)->sync($site, 'active');
 
-        $this->logRevision($site, 'enable', $before, $site->fresh()->toArray());
-        $this->logActivity($site, 'site.enabled', []);
-        $sync = $this->syncRemoteControlIfEnabled($site->fresh(), 'active');
-
-        $response = back()->with('success', __('portal.site_enabled'));
-
-        if ($sync && ! $sync['ok']) {
-            $response->with('warning', __('portal.site_sync_failed_with_reason', [
-                'reason' => $this->syncFailureReason($sync),
-            ]));
-        }
-
-        return $response;
+        return back()->with($result['ok'] ? 'success' : 'warning', $result['message']);
     }
 
     public function toggleRemoteControl(Site $site)
     {
-        $site->update([
-            'remote_control_enabled' => ! $site->remote_control_enabled,
-        ]);
+        $site = \Illuminate\Support\Facades\DB::transaction(function () use ($site) {
+            $locked = Site::query()->lockForUpdate()->findOrFail($site->id);
+            $locked->forceFill(['remote_control_enabled' => ! $locked->remote_control_enabled, 'control_version' => $locked->control_version + 1])->save();
+            $this->logActivity($locked, 'site.remote_control_changed', ['enabled' => $locked->remote_control_enabled, 'version' => $locked->control_version]);
+
+            return $locked;
+        });
 
         return back()->with(
             'success',

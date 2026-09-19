@@ -7,12 +7,12 @@
             <h2 class="h5 mb-1">{{ __('portal.site_new') }}</h2>
             <div class="portal-soft small">{{ __('portal.site_create_hint') }}</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.sites.index') }}">
+        @can('sites.read')<a class="btn btn-outline-secondary" href="{{ route('portal.sites.index') }}">
             <i class="bi bi-list me-1"></i>{{ __('portal.sites_list') }}
-        </a>
+        </a>@endcan
     </div>
 
-    <form method="POST" action="{{ route('portal.sites.store') }}" class="row g-3">
+    @can('sites.write')<form method="POST" action="{{ route('portal.sites.store') }}" class="row g-3">
         @csrf
         <div class="col-lg-6">
             <label class="form-label">{{ __('portal.site_name') }}</label>
@@ -28,7 +28,7 @@
         </div>
         <div class="col-lg-4">
             <label class="form-label">{{ __('portal.admin_password') }}</label>
-            <input name="admin_password" type="password" class="form-control" value="{{ old('admin_password') }}" autocomplete="new-password" spellcheck="false">
+            <input type="password" name="admin_password" class="form-control" value="{{ old('admin_password') }}" autocomplete="new-password" spellcheck="false">
             <div class="portal-soft small mt-1">{{ __('portal.admin_password_hint') }}</div>
         </div>
         <div class="col-lg-4">
@@ -65,6 +65,7 @@
                 @endforeach
             </select>
         </div>
+        @can('sites.control')
         <div class="col-12">
             <div class="form-check form-switch">
                 <input type="hidden" name="remote_control_enabled" value="0">
@@ -73,6 +74,8 @@
             </div>
             <div class="portal-soft small">{{ __('portal.remote_control_hint') }}</div>
         </div>
+        @endcan
+        @include('portal.sites.presentation-fields')
 
         <div class="col-12">
             <details class="portal-surface p-3">
@@ -109,6 +112,6 @@
         <div class="col-12">
             <button class="btn btn-primary">{{ __('portal.save') }}</button>
         </div>
-    </form>
+    </form>@endcan
 </div>
 @endsection

@@ -12,7 +12,7 @@
                 <input name="search" class="form-control" style="min-width: 260px;" placeholder="{{ __('portal.search') }}" value="{{ $search ?? request('search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <a class="btn btn-primary" href="{{ route('portal.hosting-accounts.add') }}">{{ __('portal.hosting_account_new') }}</a>
+            @can('hosting-accounts.write')<a class="btn btn-primary" href="{{ route('portal.hosting-accounts.add') }}">{{ __('portal.hosting_account_new') }}</a>@endcan
         </div>
     </div>
 
@@ -46,12 +46,12 @@
                     <td>{{ $account->login }}</td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route('portal.hosting-accounts.edit', $account) }}">{{ __('portal.edit') }}</a>
-                            <form method="POST" action="{{ route('portal.hosting-accounts.destroy', $account) }}" data-delete-confirm data-delete-subject="{{ $account->title }}">
+                            @can('hosting-accounts.read')<a class="btn btn-sm btn-outline-primary" href="{{ route('portal.hosting-accounts.edit', $account) }}">{{ __('portal.edit') }}</a>@endcan
+                            @can('hosting-accounts.delete')<form method="POST" action="{{ route('portal.hosting-accounts.destroy', $account) }}" data-delete-confirm data-delete-subject="{{ $account->title }}">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">{{ __('portal.delete') }}</button>
-                            </form>
+                            </form>@endcan
                         </div>
                     </td>
                 </tr>

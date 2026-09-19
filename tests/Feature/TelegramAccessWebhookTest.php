@@ -2,13 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Modules\Ftp\Models\FtpAccount;
 use App\Modules\Hosting\Models\Hosting;
 use App\Modules\Hosting\Models\HostingAccount;
 use App\Modules\Shared\Models\Company;
 use App\Modules\Site\Models\Site;
-use App\Services\TelegramBotService;
+use App\Modules\TelegramAccess\Services\TelegramBotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Mockery;
@@ -16,13 +15,13 @@ use Tests\TestCase;
 
 class TelegramAccessWebhookTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Concerns\CreatesPortalRecords;
 
     public function test_verified_user_can_open_access_menu(): void
     {
-        config()->set('services.telegram.webhook_secret', '');
+        $this->withHeader('X-Telegram-Bot-Api-Secret-Token', config('telegram_access.webhook_secret'));
 
-        $user = User::factory()->create([
+        $user = $this->portalUser('developer', 'active', [
             'telegram_chat_id' => '1001',
             'telegram_username' => 'tester',
             'telegram_verified_at' => now(),
@@ -33,8 +32,8 @@ class TelegramAccessWebhookTest extends TestCase
             ->once()
             ->withArgs(function ($chatId, $text, $options) use ($user) {
                 return (string) $chatId === '1001'
-                    && str_contains((string) $text, 'Доступи для')
-                    && str_contains((string) $text, '/sites')
+                    && str_contains((string) $text, __('portal.telegram_access_card_title'))
+                    && str_contains((string) $text, $user->displayName())
                     && isset($options['reply_markup']['keyboard']);
             })
             ->andReturn(['ok' => true]);
@@ -43,7 +42,7 @@ class TelegramAccessWebhookTest extends TestCase
 
         $response = $this->postJson('/api/telegram/webhook', [
             'message' => [
-                'chat' => ['id' => 1001],
+                'chat' => ['id' => 1001, 'type' => 'private'],
                 'from' => [
                     'id' => 1001,
                     'username' => 'tester',
@@ -58,9 +57,9 @@ class TelegramAccessWebhookTest extends TestCase
 
     public function test_site_command_returns_access_bundle_from_real_tables(): void
     {
-        config()->set('services.telegram.webhook_secret', '');
+        $this->withHeader('X-Telegram-Bot-Api-Secret-Token', config('telegram_access.webhook_secret'));
 
-        $user = User::factory()->create([
+        $user = $this->portalUser('developer', 'active', [
             'telegram_chat_id' => '2002',
             'telegram_username' => 'verified_user',
             'telegram_verified_at' => now(),
@@ -137,7 +136,7 @@ class TelegramAccessWebhookTest extends TestCase
 
         $response = $this->postJson('/api/telegram/webhook', [
             'message' => [
-                'chat' => ['id' => 2002],
+                'chat' => ['id' => 2002, 'type' => 'private'],
                 'from' => [
                     'id' => 2002,
                     'username' => 'verified_user',

@@ -12,7 +12,7 @@
                 <input name="search" class="form-control" style="min-width: 260px;" placeholder="{{ __('portal.search') }}" value="{{ $search ?? request('search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <a class="btn btn-primary" href="{{ route('portal.companies.add') }}">{{ __('portal.company_new') }}</a>
+            @can('companies.write')<a class="btn btn-primary" href="{{ route('portal.companies.add') }}">{{ __('portal.company_new') }}</a>@endcan
         </div>
     </div>
 
@@ -38,12 +38,12 @@
                     <td>{{ $company->contact ?? __('portal.empty') }}</td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route('portal.companies.edit', $company) }}">{{ __('portal.edit') }}</a>
-                            <form method="POST" action="{{ route('portal.companies.destroy', $company) }}" data-delete-confirm data-delete-subject="{{ $company->name }}">
+                            @can('companies.read')<a class="btn btn-sm btn-outline-primary" href="{{ route('portal.companies.edit', $company) }}">{{ __('portal.edit') }}</a>@endcan
+                            @can('companies.delete')<form method="POST" action="{{ route('portal.companies.destroy', $company) }}" data-delete-confirm data-delete-subject="{{ $company->name }}">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">{{ __('portal.delete') }}</button>
-                            </form>
+                            </form>@endcan
                         </div>
                     </td>
                 </tr>

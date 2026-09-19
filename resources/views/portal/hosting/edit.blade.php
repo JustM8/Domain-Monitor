@@ -6,11 +6,11 @@
     <form method="POST" action="{{ route('portal.hosting.update', $hosting) }}" class="vstack gap-2">
         @csrf
         @method('PUT')
-        <input name="name" class="form-control" value="{{ $hosting->name }}" required>
-        <input name="provider" class="form-control" value="{{ $hosting->provider }}" placeholder="{{ __('portal.provider') }}">
-        <input name="panel_url" class="form-control" value="{{ $hosting->panel_url }}" placeholder="{{ __('portal.panel_url') }}">
-        <textarea name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $hosting->note }}</textarea>
-        <button class="btn btn-dark">{{ __('portal.save') }}</button>
+        <input @readonly(! auth()->user()->canPortal('hosting.write')) name="name" class="form-control" value="{{ $hosting->name }}" required>
+        <input @readonly(! auth()->user()->canPortal('hosting.write')) name="provider" class="form-control" value="{{ $hosting->provider }}" placeholder="{{ __('portal.provider') }}">
+        <input @readonly(! auth()->user()->canPortal('hosting.write')) name="panel_url" class="form-control" value="{{ $hosting->panel_url }}" placeholder="{{ __('portal.panel_url') }}">
+        <textarea @readonly(! auth()->user()->canPortal('hosting.write')) name="note" class="form-control" rows="4" placeholder="{{ __('portal.note') }}">{{ $hosting->note }}</textarea>
+        @can('hosting.write')<button class="btn btn-dark">{{ __('portal.save') }}</button>@endcan
     </form>
 </div>
 @endsection

@@ -25,6 +25,13 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('api', function (Request $request) {
+            if ($request->is('api/telegram/*')) {
+                return Limit::perMinute(600)->by($request->path().':'.$request->ip());
+            }
+            if ($request->is('api/sites/*/ping')) {
+                return Limit::perMinute(60)->by($request->path().':'.$request->ip());
+            }
+
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 

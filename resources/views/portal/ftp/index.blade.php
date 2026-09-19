@@ -11,7 +11,7 @@
                 <input name="search" class="form-control" style="min-width: 260px;" placeholder="{{ __('portal.search') }}" value="{{ $search ?? request('search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <a class="btn btn-primary" href="{{ route('portal.ftp.add') }}">{{ __('portal.ftp_new') }}</a>
+            @can('ftp.write')<a class="btn btn-primary" href="{{ route('portal.ftp.add') }}">{{ __('portal.ftp_new') }}</a>@endcan
         </div>
     </div>
 
@@ -50,15 +50,15 @@
                     <td>{{ $account->login }}</td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route('portal.ftp.edit', $account) }}">{{ __('portal.edit') }}</a>
-                            <a class="btn btn-sm btn-outline-secondary" href="{{ route('portal.ftp.filezilla', $account) }}">
+                            @can('ftp.read')<a class="btn btn-sm btn-outline-primary" href="{{ route('portal.ftp.edit', $account) }}">{{ __('portal.edit') }}</a>@endcan
+                            @can('ftp.read')<a class="btn btn-sm btn-outline-secondary" href="{{ route('portal.ftp.filezilla', $account) }}">
                                 {{ __('portal.filezilla_export') }}
-                            </a>
-                            <form method="POST" action="{{ route('portal.ftp.destroy', $account) }}" data-delete-confirm data-delete-subject="{{ $account->company?->name ?? $account->host }}">
+                            </a>@endcan
+                            @can('ftp.delete')<form method="POST" action="{{ route('portal.ftp.destroy', $account) }}" data-delete-confirm data-delete-subject="{{ $account->company?->name ?? $account->host }}">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">{{ __('portal.delete') }}</button>
-                            </form>
+                            </form>@endcan
                         </div>
                     </td>
                 </tr>

@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Crypt;
 class Site extends Model
 {
     use HasFactory;
-    use SoftDeletes;
     use HasPortalAudit;
+    use SoftDeletes;
 
     public const SITE_TYPE_LABELS = [
         'site' => 'portal.site_type_site',
@@ -33,6 +33,8 @@ class Site extends Model
         'api_token',
         'site_type',
         'environment',
+        'display_mode',
+        'embed_origins',
         'admin_url',
         'admin_login',
         'admin_password',
@@ -59,6 +61,9 @@ class Site extends Model
     ];
 
     protected $casts = [
+        'embed_origins' => 'array',
+        'control_version' => 'integer',
+        'confirmed_control_version' => 'integer',
         'ssl' => 'boolean',
         'is_active' => 'boolean',
         'remote_control_enabled' => 'boolean',
@@ -136,7 +141,15 @@ class Site extends Model
         }
 
         try {
-            return Crypt::decryptString($this->admin_password);
+            $plain = Crypt::decryptString($this->admin_password);
+            if (preg_match('/^s:\d+:".*";$/s', $plain)) {
+                $legacy = @unserialize($plain, ['allowed_classes' => false]);
+                if (is_string($legacy) && serialize($legacy) === $plain) {
+                    return $legacy;
+                }
+            }
+
+            return $plain;
         } catch (\Throwable) {
             try {
                 return decrypt($this->admin_password);

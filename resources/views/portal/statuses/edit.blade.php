@@ -6,10 +6,10 @@
     <form method="POST" action="{{ route('portal.statuses.update', $status) }}" class="vstack gap-2">
         @csrf
         @method('PUT')
-        <input name="name" class="form-control" value="{{ $status->name }}" required>
-        <input name="color" class="form-control" value="{{ $status->color }}" required>
-        <input name="sort_order" class="form-control" type="number" value="{{ $status->sort_order }}">
-        <button class="btn btn-dark">{{ __('portal.save') }}</button>
+        <input @readonly(! auth()->user()->canPortal('statuses.write')) name="name" class="form-control" value="{{ $status->name }}" required>
+        <input @readonly(! auth()->user()->canPortal('statuses.write')) name="color" class="form-control" value="{{ $status->color }}" required>
+        <input @readonly(! auth()->user()->canPortal('statuses.write')) name="sort_order" class="form-control" type="number" value="{{ $status->sort_order }}">
+        @can('statuses.write')<button class="btn btn-dark">{{ __('portal.save') }}</button>@endcan
     </form>
 </div>
 @endsection

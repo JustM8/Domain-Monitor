@@ -3,6 +3,7 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         cacheResult="false"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -18,15 +19,26 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_URL" value="http://localhost" force="true"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_KEY" value="base64:MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=" force="true"/>
+        <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_DRIVER" value="array"/>
-        <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
-        <!-- <env name="DB_DATABASE" value=":memory:"/> -->
-        <env name="MAIL_MAILER" value="array"/>
+        <env name="CACHE_DRIVER" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="DATABASE_URL" value="" force="true"/>
+        <env name="APP_CONFIG_CACHE" value="bootstrap/cache/testing-missing-config.php" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="TELEGRAM_BOT_TOKEN" value="test-token" force="true"/>
+    <env name="TELEGRAM_BOT_USERNAME" value="test_access_bot" force="true"/>
+    <env name="TELEGRAM_WEBHOOK_SECRET" value="test-access-secret" force="true"/>
+    <env name="TELEGRAM_SUPPORT_BOT_TOKEN" value="test-token" force="true"/>
+    <env name="TELEGRAM_SUPPORT_WEBHOOK_SECRET" value="test-support-secret" force="true"/>
+    <env name="TELEGRAM_SUPPORT_CHAT_ID" value="" force="true"/>
     </php>
 </phpunit>

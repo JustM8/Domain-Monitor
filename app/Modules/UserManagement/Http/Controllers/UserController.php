@@ -6,10 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Shared\Models\ActivityLog;
 use App\Modules\Shared\Models\Role;
-use App\Services\TelegramBotService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
@@ -81,6 +80,7 @@ class UserController extends Controller
 
         $data['password'] = Hash::make($data['password']);
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['approval_status'] = $data['is_active'] ? 'active' : 'pending';
         $data['role_id'] = $this->resolveRoleId($request, $data['role_id'] ?? null);
         unset($data['new_role_name'], $data['new_role_label'], $data['new_role_sort_order']);
 
@@ -100,7 +100,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'is_active' => ['nullable', 'boolean'],
         ];
@@ -131,6 +131,7 @@ class UserController extends Controller
             unset($data['is_active']);
         } else {
             $data['is_active'] = $request->boolean('is_active', false);
+            $data['approval_status'] = $data['is_active'] ? 'active' : 'blocked';
         }
 
         $user->update($data);
@@ -164,6 +165,7 @@ class UserController extends Controller
         $before = $user->toArray();
         $user->update([
             'is_active' => ! $user->is_active,
+            'approval_status' => $user->is_active ? 'blocked' : 'active',
         ]);
 
         ActivityLog::create([
@@ -178,99 +180,19 @@ class UserController extends Controller
         return back()->with('success', __('portal.saved'));
     }
 
-    public function approveTelegram(User $user, TelegramBotService $telegram)
+    public function approve(User $user)
     {
-        $before = $user->toArray();
-        $update = [
-            'telegram_verified_at' => now(),
-        ];
+        DB::transaction(function () use ($user) {
+            $target = User::lockForUpdate()->findOrFail($user->id);
+            $actor = User::with('role')->lockForUpdate()->findOrFail(auth()->id());
+            abort_unless(\App\Modules\Shared\Support\PortalAccess::canApprove($actor, $target), 403);
+            $target->update(['is_active' => true, 'approval_status' => 'active']);
+            $log = new ActivityLog(['user_id' => $actor->id, 'action' => 'user.approved', 'properties' => ['user_id' => $target->id]]);
+            $log->subject()->associate($target);
+            $log->save();
+        });
 
-        if (filled($user->telegram_chat_id)) {
-            $update['telegram_link_token'] = null;
-            $update['telegram_link_expires_at'] = null;
-        }
-
-        $user->forceFill($update)->save();
-
-        ActivityLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'telegram.approved',
-            'properties' => [
-                'before' => $before,
-                'after' => $user->fresh()->toArray(),
-            ],
-        ])->subject()->associate($user)->save();
-
-        $flashType = 'success';
-        $flashMessage = filled($user->telegram_chat_id)
-            ? __('portal.telegram_access_approved_short')
-            : __('portal.telegram_access_approved_waiting');
-
-        if (filled($user->telegram_chat_id)) {
-            $response = $telegram->sendMessage($user->telegram_chat_id, __('portal.telegram_access_approved', [
-                'name' => e($user->displayName()),
-            ]));
-
-            if (! data_get($response, 'ok')) {
-                Log::warning('telegram_access.admin_notify_failed', [
-                    'user_id' => $user->id,
-                    'action' => 'approved',
-                    'response' => $response,
-                ]);
-
-                $flashType = 'warning';
-                $flashMessage = __('portal.telegram_access_approved_short') . ' · ' . __('portal.telegram_notification_failed', [
-                    'reason' => $this->telegramFailureReason($response),
-                ]);
-            }
-        }
-
-        return back()->with($flashType, $flashMessage);
-    }
-
-    public function revokeTelegram(User $user, TelegramBotService $telegram)
-    {
-        $before = $user->toArray();
-
-        $flashType = 'success';
-        $flashMessage = __('portal.telegram_access_revoked_short');
-
-        if (filled($user->telegram_chat_id)) {
-            $response = $telegram->sendMessage($user->telegram_chat_id, __('portal.telegram_access_revoked'));
-
-            if (! data_get($response, 'ok')) {
-                Log::warning('telegram_access.admin_notify_failed', [
-                    'user_id' => $user->id,
-                    'action' => 'revoked',
-                    'response' => $response,
-                ]);
-
-                $flashType = 'warning';
-                $flashMessage = __('portal.telegram_access_revoked_short') . ' · ' . __('portal.telegram_notification_failed', [
-                    'reason' => $this->telegramFailureReason($response),
-                ]);
-            }
-        }
-
-        $user->forceFill([
-            'telegram_chat_id' => null,
-            'telegram_username' => null,
-            'telegram_link_token' => null,
-            'telegram_link_requested_at' => null,
-            'telegram_link_expires_at' => null,
-            'telegram_verified_at' => null,
-        ])->save();
-
-        ActivityLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'telegram.revoked',
-            'properties' => [
-                'before' => $before,
-                'after' => $user->fresh()->toArray(),
-            ],
-        ])->subject()->associate($user)->save();
-
-        return back()->with($flashType, $flashMessage);
+        return back()->with('success', __('portal.saved'));
     }
 
     protected function resolveRoleId(Request $request, mixed $roleId): ?int

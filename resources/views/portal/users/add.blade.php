@@ -7,10 +7,10 @@
             <h2 class="h5 mb-1">{{ __('portal.user_new') }}</h2>
             <div class="portal-soft small">{{ __('portal.users_hint') }}</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.users.index') }}">{{ __('portal.users_list') }}</a>
+        @can('users.read')<a class="btn btn-outline-secondary" href="{{ route('portal.users.index') }}">{{ __('portal.users_list') }}</a>@endcan
     </div>
 
-    <form method="POST" action="{{ route('portal.users.store') }}" class="vstack gap-3">
+    @can('users.write')<form method="POST" action="{{ route('portal.users.store') }}" class="vstack gap-3">
         @csrf
 
         <div class="row g-3">
@@ -32,11 +32,11 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label">{{ __('portal.password') }}</label>
-                <input name="password" class="form-control" type="text" required autocomplete="off" spellcheck="false">
+                <input type="password" name="password" class="form-control" required autocomplete="off" spellcheck="false">
             </div>
             <div class="col-md-6">
                 <label class="form-label">{{ __('portal.password_confirm') }}</label>
-                <input name="password_confirmation" class="form-control" type="text" required autocomplete="off" spellcheck="false">
+                <input type="password" name="password_confirmation" class="form-control" required autocomplete="off" spellcheck="false">
             </div>
         </div>
 
@@ -86,6 +86,6 @@
         <div>
             <button class="btn btn-primary">{{ __('portal.save') }}</button>
         </div>
-    </form>
+    </form>@endcan
 </div>
 @endsection

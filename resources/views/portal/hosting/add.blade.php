@@ -7,9 +7,9 @@
             <h2 class="h5 mb-1">{{ __('portal.hosting_new') }}</h2>
             <div class="portal-soft small">{{ __('portal.hosting_list') }}</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.hosting.index') }}">{{ __('portal.hosting_list') }}</a>
+        @can('hosting.read')<a class="btn btn-outline-secondary" href="{{ route('portal.hosting.index') }}">{{ __('portal.hosting_list') }}</a>@endcan
     </div>
-    <form method="POST" action="{{ route('portal.hosting.store') }}" class="vstack gap-3">
+    @can('hosting.write')<form method="POST" action="{{ route('portal.hosting.store') }}" class="vstack gap-3">
         @csrf
         <div>
             <label class="form-label">{{ __('portal.name') }}</label>
@@ -35,6 +35,6 @@
         <div>
             <button class="btn btn-primary">{{ __('portal.save') }}</button>
         </div>
-    </form>
+    </form>@endcan
 </div>
 @endsection

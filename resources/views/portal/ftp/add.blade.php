@@ -7,9 +7,9 @@
             <h2 class="h5 mb-1">{{ __('portal.ftp_new') }}</h2>
             <div class="portal-soft small">{{ __('portal.ftp_list') }}</div>
         </div>
-        <a class="btn btn-outline-secondary" href="{{ route('portal.ftp.index') }}">{{ __('portal.ftp_list') }}</a>
+        @can('ftp.read')<a class="btn btn-outline-secondary" href="{{ route('portal.ftp.index') }}">{{ __('portal.ftp_list') }}</a>@endcan
     </div>
-    <form method="POST" action="{{ route('portal.ftp.store') }}" class="row g-3">
+    @can('ftp.write')<form method="POST" action="{{ route('portal.ftp.store') }}" class="row g-3">
         @csrf
         <div class="col-lg-4">
             <label class="form-label">{{ __('portal.company') }}</label>
@@ -43,7 +43,7 @@
         </div>
         <div class="col-lg-6">
             <label class="form-label">{{ __('portal.password') }}</label>
-            <input name="password" type="text" class="form-control" value="{{ old('password') }}" autocomplete="off" spellcheck="false">
+            <input type="password" name="password" class="form-control" value="{{ old('password') }}" autocomplete="off" spellcheck="false">
         </div>
         <div class="col-lg-6">
             <label class="form-label">{{ __('portal.path') }}</label>
@@ -67,6 +67,6 @@
         <div class="col-12">
             <button class="btn btn-primary">{{ __('portal.save') }}</button>
         </div>
-    </form>
+    </form>@endcan
 </div>
 @endsection

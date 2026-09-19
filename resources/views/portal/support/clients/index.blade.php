@@ -12,7 +12,7 @@
                 <input name="search" class="form-control" style="min-width: 260px;" value="{{ $search }}" placeholder="{{ __('portal.search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <a class="btn btn-primary" href="{{ route('portal.support.clients.add') }}">{{ __('portal.support.client_new') }}</a>
+            @can('support.write')<a class="btn btn-primary" href="{{ route('portal.support.clients.add') }}">{{ __('portal.support.client_new') }}</a>@endcan
         </div>
     </div>
 </div>
@@ -61,7 +61,7 @@
                     </td>
                     <td class="text-nowrap">{{ $client->last_active_at?->format('d.m.Y H:i') ?? __('portal.empty') }}</td>
                     <td class="text-nowrap">
-                        <a class="btn btn-sm btn-primary" href="{{ route('portal.support.clients.edit', $client) }}">{{ __('portal.edit') }}</a>
+                        @can('support.read')<a class="btn btn-sm btn-primary" href="{{ route('portal.support.clients.edit', $client) }}">{{ __('portal.edit') }}</a>@endcan
                     </td>
                 </tr>
             @empty

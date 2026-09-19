@@ -25,19 +25,19 @@
 
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.user_name') }}</label>
-                    <input name="name" class="form-control" value="{{ $user->name }}" required>
+                    <input @readonly(! auth()->user()->canPortal('users.write')) name="name" class="form-control" value="{{ $user->name }}" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.email') }}</label>
-                    <input name="email" class="form-control" type="email" value="{{ $user->email }}" required>
+                    <input @readonly(! auth()->user()->canPortal('users.write')) name="email" class="form-control" type="email" value="{{ $user->email }}" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.full_name') }}</label>
-                    <input name="full_name" class="form-control" value="{{ $user->full_name }}" placeholder="{{ __('portal.full_name') }}">
+                    <input @readonly(! auth()->user()->canPortal('users.write')) name="full_name" class="form-control" value="{{ $user->full_name }}" placeholder="{{ __('portal.full_name') }}">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.position') }}</label>
-                    <input name="position" class="form-control" value="{{ $user->position }}" placeholder="{{ __('portal.position') }}">
+                    <input @readonly(! auth()->user()->canPortal('users.write')) name="position" class="form-control" value="{{ $user->position }}" placeholder="{{ __('portal.position') }}">
                 </div>
 
                 <div class="col-12">
@@ -56,7 +56,7 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Існуюча роль</label>
-                                    <select name="role_id" class="form-select">
+                                    <select name="role_id" class="form-select" @disabled(! auth()->user()->canPortal('users.write'))>
                                         <option value="">Оберіть роль</option>
                                         @foreach($roles as $role)
                                             <option value="{{ $role->id }}" @selected($user->role_id === $role->id)>{{ $role->label }}</option>
@@ -65,58 +65,55 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Нова роль</label>
-                                    <input name="new_role_name" class="form-control" value="{{ old('new_role_name') }}" placeholder="Наприклад: designer">
+                                    <input @readonly(! auth()->user()->canPortal('users.write')) name="new_role_name" class="form-control" value="{{ old('new_role_name') }}" placeholder="Наприклад: designer">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Назва ролі</label>
-                                    <input name="new_role_label" class="form-control" value="{{ old('new_role_label') }}" placeholder="Наприклад: Дизайнер">
+                                    <input @readonly(! auth()->user()->canPortal('users.write')) name="new_role_label" class="form-control" value="{{ old('new_role_label') }}" placeholder="Наприклад: Дизайнер">
                                 </div>
                                 <div class="col-md-1">
                                     <label class="form-label">Порядок</label>
-                                    <input name="new_role_sort_order" class="form-control" type="number" min="0" max="9999" value="{{ old('new_role_sort_order', 0) }}">
+                                    <input @readonly(! auth()->user()->canPortal('users.write')) name="new_role_sort_order" class="form-control" type="number" min="0" max="9999" value="{{ old('new_role_sort_order', 0) }}">
                                 </div>
                             </div>
                         @else
-                            <input class="form-control" value="{{ $user->role?->label ?? __('portal.empty') }}" readonly>
+                            <input @readonly(! auth()->user()->canPortal('users.write')) class="form-control" value="{{ $user->role?->label ?? __('portal.empty') }}" readonly>
                         @endif
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.email_verification') }}</label>
-                    <input class="form-control" value="{{ $user->email_verified_at?->format('d.m.Y H:i') ?? __('portal.not_verified') }}" readonly>
+                    <input @readonly(! auth()->user()->canPortal('users.write')) class="form-control" value="{{ $user->email_verified_at?->format('d.m.Y H:i') ?? __('portal.not_verified') }}" readonly>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.new_password') }}</label>
                     <div class="input-group">
-                        <input id="user-password" name="password" class="form-control" type="password" placeholder="{{ __('portal.new_password') }}">
-                        <button class="btn btn-outline-secondary" type="button" data-password-target="#user-password" data-password-confirm="#user-password-confirmation">
-                            <i class="bi bi-shuffle"></i> {{ __('portal.generate_password') }}
-                        </button>
+                        <input @readonly(! auth()->user()->canPortal('users.write')) id="user-password" name="password" class="form-control" type="password" placeholder="{{ __('portal.new_password') }}">
                     </div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">{{ __('portal.password_confirm') }}</label>
-                    <input id="user-password-confirmation" name="password_confirmation" class="form-control" type="password" placeholder="{{ __('portal.password_confirm') }}">
+                    <input @readonly(! auth()->user()->canPortal('users.write')) id="user-password-confirmation" name="password_confirmation" class="form-control" type="password" placeholder="{{ __('portal.password_confirm') }}">
                 </div>
                 <div class="col-12">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_active" value="1" id="user-active" @checked($user->is_active) @disabled($user->id === auth()->id())>
+                        <input @readonly(! auth()->user()->canPortal('users.write')) class="form-check-input" type="checkbox" name="is_active" value="1" id="user-active" @checked($user->is_active) @disabled($user->id === auth()->id())>
                         <label class="form-check-label" for="user-active">{{ __('portal.active') }}</label>
                     </div>
                 </div>
                 <div class="col-12">
-                    <button class="btn btn-primary px-4">{{ __('portal.save') }}</button>
+                    @can('users.write')<button class="btn btn-primary px-4">{{ __('portal.save') }}</button>@endcan
                 </div>
             </form>
 
             @if(! $user->hasVerifiedEmail())
-                <form method="POST" action="{{ route('portal.users.send-verification', $user) }}" class="mt-3">
+                @can('users.write')<form method="POST" action="{{ route('portal.users.send-verification', $user) }}" class="mt-3">
                     @csrf
                     <button class="btn btn-outline-success text-nowrap">
                         <i class="bi bi-send me-1"></i>{{ __('portal.send_verification') }}
                     </button>
-                </form>
+                </form>@endcan
             @endif
         </div>
     </div>
@@ -171,26 +168,22 @@
 
                 @if($user->telegramIsPending())
                     <div class="d-flex gap-2 flex-wrap mt-3">
-                        <form method="POST" action="{{ route('portal.users.telegram.approve', $user) }}">
+                        @can('users.write')<form method="POST" action="{{ route('portal.users.telegram.approve', $user) }}">
                             @csrf
                             <button class="btn btn-sm btn-primary">{{ __('portal.telegram_approve') }}</button>
-                        </form>
-                        <form method="POST" action="{{ route('portal.users.telegram.revoke', $user) }}" data-delete-confirm data-delete-subject="{{ $user->displayName() }}">
+                        </form>@endcan
+                        @can('users.write')<form method="POST" action="{{ route('portal.users.telegram.revoke', $user) }}" data-delete-confirm data-delete-subject="{{ $user->displayName() }}">
                             @csrf
                             <button class="btn btn-sm btn-outline-danger">{{ __('portal.telegram_revoke') }}</button>
-                        </form>
+                        </form>@endcan
                     </div>
                 @elseif($user->telegramNeedsBotStart())
                     <div class="d-flex gap-2 flex-wrap mt-3">
-                        @if($user->telegramNeedsBotStart() && ! empty($user->telegram_link_token))
-                            <a class="btn btn-sm btn-outline-secondary" href="https://t.me/{{ config('services.telegram.bot_username') }}?start={{ $user->telegram_link_token }}" target="_blank" rel="noopener">
-                                {{ __('portal.telegram_open_bot') }}
-                            </a>
-                        @endif
-                        <form method="POST" action="{{ route('portal.users.telegram.revoke', $user) }}" data-delete-confirm data-delete-subject="{{ $user->displayName() }}">
+                        <div class="small portal-soft">Користувач підключає Telegram лише у власному кабінеті.</div>
+                        @can('users.write')<form method="POST" action="{{ route('portal.users.telegram.revoke', $user) }}" data-delete-confirm data-delete-subject="{{ $user->displayName() }}">
                             @csrf
                             <button class="btn btn-sm btn-outline-danger">{{ __('portal.telegram_revoke') }}</button>
-                        </form>
+                        </form>@endcan
                     </div>
                 @endif
             </div>
@@ -198,27 +191,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    document.querySelectorAll('[data-password-target]').forEach((button) => {
-        button.addEventListener('click', async () => {
-            const target = document.querySelector(button.dataset.passwordTarget);
-            const confirmation = document.querySelector(button.dataset.passwordConfirm);
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
-            let password = '';
-
-            for (let i = 0; i < 16; i++) {
-                password += chars[Math.floor(Math.random() * chars.length)];
-            }
-
-            if (target) target.value = password;
-            if (confirmation) confirmation.value = password;
-
-            try {
-                await navigator.clipboard.writeText(password);
-            } catch (e) {}
-        });
-    });
-</script>
-@endpush

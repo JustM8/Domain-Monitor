@@ -20,20 +20,20 @@
             </div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <form method="POST" action="{{ route('portal.support.status', $ticket) }}">
+            @can('support.write')<form method="POST" action="{{ route('portal.support.status', $ticket) }}">
                 @csrf
                 <input type="hidden" name="status" value="{{ \App\Modules\TelegramSupport\Models\SupportTicket::STATUS_IN_PROGRESS }}">
                 <button class="btn btn-outline-primary">{{ __('portal.support.status.in_progress') }}</button>
-            </form>
-            <form method="POST" action="{{ route('portal.support.status', $ticket) }}">
+            </form>@endcan
+            @can('support.write')<form method="POST" action="{{ route('portal.support.status', $ticket) }}">
                 @csrf
                 <input type="hidden" name="status" value="{{ \App\Modules\TelegramSupport\Models\SupportTicket::STATUS_CLOSED }}">
                 <button class="btn btn-success">{{ __('portal.support.close') }}</button>
-            </form>
-            <form method="POST" action="{{ route('portal.support.pm', $ticket) }}">
+            </form>@endcan
+            @can('support.write')<form method="POST" action="{{ route('portal.support.pm', $ticket) }}">
                 @csrf
                 <button class="btn {{ $ticket->sent_to_pm ? 'btn-dark' : 'btn-outline-dark' }}">{{ $ticket->sent_to_pm ? 'PM позначено' : 'Позначити PM' }}</button>
-            </form>
+            </form>@endcan
         </div>
     </div>
 </div>
@@ -130,13 +130,13 @@
             <h2 class="h5 mb-3">{{ __('portal.support.requests') }}</h2>
             <div class="vstack gap-2">
                 @forelse($ticket->session?->tickets ?? collect() as $requestItem)
-                    <a class="portal-surface p-3 text-decoration-none {{ $requestItem->id === $ticket->id ? 'border border-primary' : '' }}" href="{{ route('portal.support.show', $requestItem) }}">
+                    @can('support.read')<a class="portal-surface p-3 text-decoration-none {{ $requestItem->id === $ticket->id ? 'border border-primary' : '' }}" href="{{ route('portal.support.show', $requestItem) }}">
                         <div class="d-flex justify-content-between gap-2 flex-wrap">
                             <div class="fw-semibold">{{ $requestItem->displayLabel() }}</div>
                             <span class="badge rounded-pill text-bg-{{ $requestItem->statusBadgeClass() }}">{{ $requestItem->statusLabel() }}</span>
                         </div>
                         <div class="small portal-soft">{{ $requestItem->subject }}</div>
-                    </a>
+                    </a>@endcan
                 @empty
                     <div class="portal-empty">{{ __('portal.empty') }}</div>
                 @endforelse
@@ -154,6 +154,13 @@
                             <div class="fw-semibold text-capitalize">{{ $message->direction }}</div>
                             <div class="small portal-soft">{{ $message->created_at?->format('d.m.Y H:i') }}</div>
                         </div>
+                        @if($message->direction === 'staff')
+                        <div class="small {{ $message->delivery_status === 'sent' ? 'text-success' : 'text-danger' }}">{{ ['sent' => 'Доставлено', 'pending' => 'Очікує доставки', 'failed' => 'Не доставлено'][$message->delivery_status] ?? $message->delivery_status }}</div>
+                        @if($message->delivery_status !== 'sent')
+                        <div class="small text-danger">{{ $message->delivery_error }}</div>
+                        @can('support.reply')<form class="mt-2" method="POST" action="{{ route('portal.support.reply.retry', [$ticket, $message]) }}">@csrf<button class="btn btn-sm btn-outline-primary">Повторити надсилання</button></form>@endcan
+                        @endif
+                        @endif
                         @if(filled($message->body))
                             <div class="text-break">{{ $message->body }}</div>
                         @endif
@@ -171,13 +178,13 @@
 
         <div class="portal-card p-4">
             <h2 class="h5 mb-3">{{ __('portal.support.reply') }}</h2>
-            <form method="POST" action="{{ route('portal.support.reply', $ticket) }}" class="vstack gap-3">
+            @can('support.reply')<form method="POST" action="{{ route('portal.support.reply', $ticket) }}" class="vstack gap-3">
                 @csrf
                 <textarea name="body" class="form-control" rows="5" placeholder="{{ __('portal.support.message') }}" required></textarea>
                 <div>
                     <button class="btn btn-primary">{{ __('portal.support.reply') }}</button>
                 </div>
-            </form>
+            </form>@endcan
         </div>
     </div>
 </div>

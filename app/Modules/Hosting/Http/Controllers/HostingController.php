@@ -3,8 +3,8 @@
 namespace App\Modules\Hosting\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Shared\Models\ActivityLog;
 use App\Modules\Hosting\Models\Hosting;
+use App\Modules\Shared\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class HostingController extends Controller
@@ -43,7 +43,7 @@ class HostingController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'provider' => ['nullable', 'string', 'max:255'],
-            'panel_url' => ['nullable', 'string', 'max:255'],
+            'panel_url' => ['nullable', 'url:http,https', 'max:255'],
             'note' => ['nullable', 'string'],
         ]);
 
@@ -63,7 +63,7 @@ class HostingController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'provider' => ['nullable', 'string', 'max:255'],
-            'panel_url' => ['nullable', 'string', 'max:255'],
+            'panel_url' => ['nullable', 'url:http,https', 'max:255'],
             'note' => ['nullable', 'string'],
         ]);
 

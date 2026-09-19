@@ -11,31 +11,18 @@ class SitePingController extends Controller
 {
     public function __invoke(Request $request, Site $site)
     {
-        $providedToken = (string) $request->header('X-Site-Token', '');
-        $storedToken = $site->api_token ? Crypt::decryptString($site->api_token) : '';
-
-        if ($providedToken === '' || ! hash_equals($storedToken, $providedToken)) {
-            return response()->json([
-                'status' => 'unauthorized',
-                'message' => __('portal.unauthorized'),
-            ], 401);
+        try {
+            $token = Crypt::decryptString($site->api_token);
+        } catch (\Throwable $e) {
+            $token = '';
         }
-
-        if (! $site->is_active) {
-            return response()->json([
-                'status' => 'disabled',
-                'reason' => $site->disabled_reason,
-                'message' => __('portal.site_temporarily_disabled'),
-            ], 423);
-        }
+        $provided = (string) $request->header('X-Site-Token');
+        abort_if($token === '' || $provided === '' || ! hash_equals($token, $provided), 401);
 
         return response()->json([
-            'status' => 'active',
-            'site' => [
-                'id' => $site->id,
-                'name' => $site->name,
-                'url' => $site->url,
-            ],
-        ]);
+            'site_id' => $site->id, 'managed' => $site->remote_control_enabled,
+            'status' => $site->is_active ? 'active' : 'disabled', 'version' => $site->control_version,
+            'reason' => $site->disabled_reason, 'display_mode' => $site->display_mode, 'embed_origins' => $site->embed_origins ?: [],
+        ])->header('Cache-Control', 'no-store');
     }
 }

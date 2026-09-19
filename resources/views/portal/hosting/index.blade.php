@@ -12,7 +12,7 @@
                 <input name="search" class="form-control" style="min-width: 260px;" placeholder="{{ __('portal.search') }}" value="{{ $search ?? request('search') }}">
                 <button class="btn btn-outline-secondary">{{ __('portal.find') }}</button>
             </form>
-            <a class="btn btn-primary" href="{{ route('portal.hosting.add') }}">{{ __('portal.hosting_new') }}</a>
+            @can('hosting.write')<a class="btn btn-primary" href="{{ route('portal.hosting.add') }}">{{ __('portal.hosting_new') }}</a>@endcan
         </div>
     </div>
 
@@ -36,12 +36,12 @@
                     <td>{{ $hosting->accounts_count }}</td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route('portal.hosting.edit', $hosting) }}">{{ __('portal.edit') }}</a>
-                            <form method="POST" action="{{ route('portal.hosting.destroy', $hosting) }}" data-delete-confirm data-delete-subject="{{ $hosting->name }}">
+                            @can('hosting.read')<a class="btn btn-sm btn-outline-primary" href="{{ route('portal.hosting.edit', $hosting) }}">{{ __('portal.edit') }}</a>@endcan
+                            @can('hosting.delete')<form method="POST" action="{{ route('portal.hosting.destroy', $hosting) }}" data-delete-confirm data-delete-subject="{{ $hosting->name }}">
                                 @csrf
                                 @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">{{ __('portal.delete') }}</button>
-                            </form>
+                            </form>@endcan
                         </div>
                     </td>
                 </tr>

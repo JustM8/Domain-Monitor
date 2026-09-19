@@ -63,33 +63,33 @@
                             </div>
                         </div>
                         <label class="form-check form-switch m-0">
-                            <input type="checkbox" class="form-check-input" name="topics[{{ $index }}][is_active]" value="1" @checked((bool) ($row['is_active'] ?? false))>
+                            <input @readonly(! auth()->user()->canPortal('support.write')) type="checkbox" class="form-check-input" name="topics[{{ $index }}][is_active]" value="1" @checked((bool) ($row['is_active'] ?? false)) @disabled(! auth()->user()->canPortal('support.write'))>
                             <span class="form-check-label small">{{ __('portal.active') }}</span>
                         </label>
                     </summary>
 
-                    <input type="hidden" name="topics[{{ $index }}][id]" value="{{ $row['id'] ?? '' }}">
+                    <input @readonly(! auth()->user()->canPortal('support.write')) type="hidden" name="topics[{{ $index }}][id]" value="{{ $row['id'] ?? '' }}">
 
                     <div class="row g-2 mt-3">
                         <div class="col-lg-5">
                             <label class="form-label mb-1">{{ __('portal.name') }}</label>
-                            <input type="text" name="topics[{{ $index }}][label]" class="form-control form-control-sm" value="{{ $row['label'] ?? '' }}" placeholder="{{ __('portal.support.topic_name_placeholder') }}">
+                            <input @readonly(! auth()->user()->canPortal('support.write')) type="text" name="topics[{{ $index }}][label]" class="form-control form-control-sm" value="{{ $row['label'] ?? '' }}" placeholder="{{ __('portal.support.topic_name_placeholder') }}">
                         </div>
                         <div class="col-lg-4">
                             <label class="form-label mb-1">{{ __('portal.support.chat_id') }}</label>
-                            <input type="text" name="topics[{{ $index }}][telegram_chat_id]" class="form-control form-control-sm" value="{{ $row['telegram_chat_id'] ?? '' }}" placeholder="{{ __('portal.support.chat_id_placeholder') }}">
+                            <input @readonly(! auth()->user()->canPortal('support.write')) type="text" name="topics[{{ $index }}][telegram_chat_id]" class="form-control form-control-sm" value="{{ $row['telegram_chat_id'] ?? '' }}" placeholder="{{ __('portal.support.chat_id_placeholder') }}">
                         </div>
                         <div class="col-lg-1">
                             <label class="form-label mb-1">{{ __('portal.sort_order') }}</label>
-                            <input type="number" name="topics[{{ $index }}][sort_order]" class="form-control form-control-sm" min="0" value="{{ $row['sort_order'] ?? 0 }}">
+                            <input @readonly(! auth()->user()->canPortal('support.write')) type="number" name="topics[{{ $index }}][sort_order]" class="form-control form-control-sm" min="0" value="{{ $row['sort_order'] ?? 0 }}">
                         </div>
                         <div class="col-lg-2">
                             <label class="form-label mb-1">{{ __('portal.support.fallback_role') }}</label>
-                            <input type="text" name="topics[{{ $index }}][assigned_role]" class="form-control form-control-sm" value="{{ $row['assigned_role'] ?? '' }}" placeholder="{{ __('portal.support.fallback_role_placeholder') }}">
+                            <input @readonly(! auth()->user()->canPortal('support.write')) type="text" name="topics[{{ $index }}][assigned_role]" class="form-control form-control-sm" value="{{ $row['assigned_role'] ?? '' }}" placeholder="{{ __('portal.support.fallback_role_placeholder') }}">
                         </div>
                         <div class="col-12">
                             <label class="form-label mb-1">{{ __('portal.support.responsible_users') }}</label>
-                            <select name="topics[{{ $index }}][responsible_user_ids][]" class="form-select form-select-sm" multiple size="3">
+                            <select name="topics[{{ $index }}][responsible_user_ids][]" class="form-select form-select-sm" multiple size="3" @disabled(! auth()->user()->canPortal('support.write'))>
                                 @foreach($users as $user)
                                     <option value="{{ $user->id }}" @selected(in_array($user->id, $row['responsible_user_ids'] ?? [], true))>
                                         {{ $user->displayName() }} @if($user->role?->label) · {{ $user->role->label }} @endif
@@ -108,9 +108,9 @@
 
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
         <div class="portal-soft small">{{ __('portal.support.settings_buttons_hint') }}</div>
-        <button type="submit" class="btn btn-primary">
+        @can('support.write')<button type="submit" class="btn btn-primary">
             {{ __('portal.save') }}
-        </button>
+        </button>@endcan
     </div>
 </form>
 

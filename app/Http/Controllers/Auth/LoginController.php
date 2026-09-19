@@ -25,7 +25,10 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/portal';
+    protected function authenticated($request, $user)
+    {
+        return redirect()->to($user->portalHome());
+    }
 
     /**
      * Create a new controller instance.
