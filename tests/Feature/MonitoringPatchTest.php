@@ -271,7 +271,10 @@ class MonitoringPatchTest extends TestCase
         $this->assertNull($total['uptime']);
         $this->assertEquals(0, $total['coverage']);
         $this->assertSame(300, $total['unknown']);
-        $this->actingAs($this->portalUser('pm'))->get('/portal/monitoring?period=today')->assertOk()->assertSee('Немає даних');
+        $this->actingAs($this->portalUser('pm'))->get('/portal/monitoring?period=today')->assertOk()
+            ->assertSee('Немає даних')
+            ->assertSee('Cron увімкнено: 1')
+            ->assertSee('Очікують перевірки зараз: 1');
         app(SiteMonitor::class)->check($site);
         $this->at('00:10:00');
         $this->get('/portal/monitoring/sites/'.$site->id.'?period=today')->assertOk()

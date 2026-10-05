@@ -54,7 +54,7 @@
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
             <h1 class="h4 mb-1">Support аналітика</h1>
-            <div class="support-analytics-subtle small">Проста візуалізація звернень, оцінок, груп і менеджерів.</div>
+            <div class="support-analytics-subtle small">Фактична робота менеджерів за підтвердженими Telegram-акаунтами.</div>
         </div>
         @can('support.read')<a class="btn btn-outline-secondary" href="{{ route('portal.support.index') }}">До списку звернень</a>@endcan
     </div>
@@ -144,7 +144,7 @@
             <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                 <div>
                     <h2 class="h5 mb-1">Топ менеджери</h2>
-                    <div class="support-analytics-subtle small">Порівняння по зверненнях і закриттях.</div>
+                    <div class="support-analytics-subtle small">Реальні відповіді, тікети й закриття менеджерів.</div>
                 </div>
             </div>
             <div class="support-analytics-chart">
@@ -154,67 +154,46 @@
     </div>
 </div>
 
-<div class="portal-card p-0 overflow-hidden mb-3">
-    <div class="table-responsive">
-        <table class="table align-middle mb-0 support-analytics-table">
-            <thead>
-            <tr>
-                <th>Група</th>
-                <th>Відповідальний</th>
-                <th>Усього</th>
-                <th>Закриті</th>
-                <th>PM</th>
-                <th>Середня оцінка</th>
-            </tr>
-            </thead>
-            <tbody>
-            @forelse($byTopic as $row)
-                <tr>
-                    <td class="fw-semibold">{{ $row['label'] }}</td>
-                    <td>{{ $row['responsible'] }}</td>
-                    <td>{{ $row['tickets'] }}</td>
-                    <td>{{ $row['closed'] }}</td>
-                    <td>{{ $row['pm'] }}</td>
-                    <td>{{ $row['avg_rating'] }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="6" class="support-analytics-subtle">{{ __('portal.empty') }}</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
-
 <div class="portal-card p-0 overflow-hidden">
     <div class="table-responsive">
         <table class="table align-middle mb-0 support-analytics-table">
             <thead>
             <tr>
-                <th>Менеджер / PM</th>
-                <th>Група</th>
-                <th>Усього</th>
-                <th>Закриті</th>
-                <th>PM</th>
+                <th>Відповідальний</th>
+                <th>Telegram</th>
+                <th>Напрямки</th>
+                <th>Тікети</th>
+                <th>Відповіді</th>
+                <th>Перші відповіді</th>
+                <th>Закриті ним</th>
+                <th>Сер. перша відповідь</th>
                 <th>Середня оцінка</th>
             </tr>
             </thead>
             <tbody>
             @forelse($byManager as $row)
                 <tr>
-                    <td class="fw-semibold">{{ $row['name'] }}</td>
-                    <td>{{ $row['topic'] }}</td>
+                    <td class="fw-semibold">
+                        {{ $row['name'] }}
+                        @if(! empty($row['is_unverified']))
+                            <span class="badge rounded-pill text-bg-warning ms-2">не верифіковано</span>
+                        @endif
+                    </td>
+                    <td>{{ $row['telegram'] ?? __('portal.empty') }}</td>
+                    <td>{{ $row['topics'] }}</td>
                     <td>{{ $row['tickets'] }}</td>
+                    <td>{{ $row['replies'] }}</td>
+                    <td>{{ $row['first_responses'] }}</td>
                     <td>{{ $row['closed'] }}</td>
-                    <td>{{ $row['pm'] }}</td>
+                    <td>{{ $row['avg_first_response'] }}</td>
                     <td>{{ $row['avg_rating'] }}</td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="support-analytics-subtle">{{ __('portal.empty') }}</td></tr>
+                <tr><td colspan="9" class="support-analytics-subtle">{{ __('portal.empty') }}</td></tr>
             @endforelse
             </tbody>
         </table>
     </div>
 </div>
-
 <script id="support-analytics-data" type="application/json">@json($chartData)</script>
 @endsection

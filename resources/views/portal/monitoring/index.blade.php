@@ -8,11 +8,11 @@
     @php
         $lastRunAt = \Carbon\Carbon::parse($lastRun->started_at, config('monitoring.timezone'));
     @endphp
-    <div>Останній запуск: <strong>{{ $lastRunAt->format('d.m.Y H:i') }}</strong> · {{ ['running' => 'виконується', 'completed' => 'завершено', 'failed' => 'помилка', 'interrupted' => 'перервано'][$lastRun->status] ?? $lastRun->status }} · Перевірено: {{ $lastRun->checked }}</div>
+    <div>Останній запуск: <strong>{{ $lastRunAt->format('d.m.Y H:i') }}</strong> · {{ ['running' => 'виконується', 'completed' => 'завершено', 'failed' => 'помилка', 'interrupted' => 'перервано'][$lastRun->status] ?? $lastRun->status }} · У цьому запуску перевірено: {{ $lastRun->checked }}</div>
     @if($lastRunAt->lt(now(config('monitoring.timezone'))->subMinutes(5)))<div class="text-warning mt-1">Cron давно не запускався. Перевірте розклад на хостингу.</div>@endif
     @if($lastRun->error)<div class="text-danger">Помилка: {{ $lastRun->error }}</div>@endif
     @else<div class="text-warning">Ще не було запусків. Налаштуйте cron за інструкцією розгортання.</div>@endif
-    <div class="small portal-soft mt-2">Очікують сповіщення: {{ $pendingNotifications }}. Інтервал і поріг невдач задаються окремо для кожного сайту.</div>
+    <div class="small portal-soft mt-2">Cron увімкнено: {{ $enabledSitesCount }}. Очікують перевірки зараз: {{ $dueSitesCount }}. Очікують сповіщення: {{ $pendingNotifications }}. Інтервал і поріг невдач задаються окремо для кожного сайту.</div>
 </div>
 <div class="portal-card p-4 mb-3">
     <form method="GET" class="row g-2 mb-3">

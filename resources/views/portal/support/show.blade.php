@@ -155,6 +155,19 @@
                             <div class="small portal-soft">{{ $message->created_at?->format('d.m.Y H:i') }}</div>
                         </div>
                         @if($message->direction === 'staff')
+                        @php
+                            $staffTelegram = $message->sentBy?->telegram_username ?: $message->telegram_username;
+                            $staffTelegramLabel = $staffTelegram ? '@'.ltrim($staffTelegram, '@') : null;
+                        @endphp
+                        <div class="small portal-soft mb-1">
+                            @if($message->sentBy)
+                                Менеджер: {{ $message->sentBy->displayName() }}@if($staffTelegramLabel) ({{ $staffTelegramLabel }})@endif
+                            @elseif($staffTelegramLabel)
+                                Staff ({{ $staffTelegramLabel }}, не верифіковано)
+                            @else
+                                Staff
+                            @endif
+                        </div>
                         <div class="small {{ $message->delivery_status === 'sent' ? 'text-success' : 'text-danger' }}">{{ ['sent' => 'Доставлено', 'pending' => 'Очікує доставки', 'failed' => 'Не доставлено'][$message->delivery_status] ?? $message->delivery_status }}</div>
                         @if($message->delivery_status !== 'sent')
                         <div class="small text-danger">{{ $message->delivery_error }}</div>

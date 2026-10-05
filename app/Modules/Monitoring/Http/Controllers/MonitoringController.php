@@ -54,11 +54,16 @@ class MonitoringController extends Controller
         }
         $ids = (clone $query)->pluck('sites.id')->all();
         $range = $reports->range($request, $ids);
+        $dueQuery = Site::query()->where('monitoring_enabled', true)
+            ->leftJoin('monitoring_states as ms', 'ms.site_id', '=', 'sites.id')
+            ->where(fn ($q) => $q->whereNull('ms.next_check_at')->orWhere('ms.next_check_at', '<=', now()));
 
         return view('portal.monitoring.index', [
             'sites' => $query->orderBy('sites.name')->paginate(30)->withQueryString(),
             'report' => $reports->build($ids, $range),
             'lastRun' => DB::table('monitoring_runs')->latest('id')->first(),
+            'enabledSitesCount' => Site::query()->where('monitoring_enabled', true)->count(),
+            'dueSitesCount' => $dueQuery->count('sites.id'),
             'pendingNotifications' => DB::table('monitoring_notifications')->whereNull('sent_at')->whereNull('cancelled_at')->count(),
             'recipients' => $this->recipients(), 'selectedRecipients' => $notifications->recipientIds(),
         ]);

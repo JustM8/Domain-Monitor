@@ -20,7 +20,7 @@ class SupportTicketController extends Controller
         $type = trim((string) $request->string('type'));
 
         $query = SupportTicket::query()
-            ->with(['client', 'session.topic.responsibleUsers', 'session.tickets', 'closedBy', 'messages'])
+            ->with(['client', 'session.topic.responsibleUsers', 'session.tickets', 'closedBy', 'messages.sentBy'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('number', 'like', "%{$search}%")

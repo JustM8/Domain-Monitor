@@ -78,7 +78,7 @@
             <tr>
                 <th>#</th>
                 <th>{{ __('portal.support.client') }}</th>
-                <th>{{ __('portal.support.session') }}</th>
+                <th>Відповідали</th>
                 <th>{{ __('portal.support.ticket') }}</th>
                 <th>{{ __('portal.support.assigned') }}</th>
                 <th>Час до першої відповіді</th>
@@ -101,8 +101,34 @@
                         <div class="small portal-soft">{{ $ticket->client?->email ?? __('portal.empty') }}</div>
                     </td>
                     <td>
-                        <div class="fw-semibold">{{ $ticket->session?->number ?? __('portal.empty') }}</div>
-                        <div class="small portal-soft">{{ $ticket->session?->topic?->displayLabel() ?? __('portal.empty') }}</div>
+                        @php
+                            $responders = $ticket->messages
+                                ->where('direction', 'staff')
+                                ->map(function ($message) {
+                                    if ($message->sentBy) {
+                                        $telegram = $message->sentBy->telegram_username ? ' (@'.ltrim($message->sentBy->telegram_username, '@').')' : '';
+
+                                        return $message->sentBy->displayName().$telegram;
+                                    }
+
+                                    if ($message->telegram_username) {
+                                        return '@'.ltrim($message->telegram_username, '@').' · не верифіковано';
+                                    }
+
+                                    return null;
+                                })
+                                ->filter()
+                                ->unique()
+                                ->values();
+                        @endphp
+                        @if($responders->isNotEmpty())
+                            <div class="fw-semibold">{{ $responders->take(2)->implode(', ') }}</div>
+                            @if($responders->count() > 2)
+                                <div class="small portal-soft">+{{ $responders->count() - 2 }}</div>
+                            @endif
+                        @else
+                            <div class="portal-soft">{{ __('portal.empty') }}</div>
+                        @endif
                     </td>
                     <td>
                         <div class="d-flex gap-2 flex-wrap mb-1">

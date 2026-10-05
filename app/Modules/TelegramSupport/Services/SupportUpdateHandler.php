@@ -2,6 +2,7 @@
 
 namespace App\Modules\TelegramSupport\Services;
 
+use App\Models\User;
 use App\Modules\TelegramSupport\Models\SupportClient;
 use App\Modules\TelegramSupport\Models\SupportMessage;
 use App\Modules\TelegramSupport\Models\SupportSession;
@@ -267,7 +268,7 @@ class SupportUpdateHandler
 
             if ($ticket && $ticket->session?->telegram_chat_id === $chatId) {
                 $bot->answerCallbackQuery($callbackId, __('portal.support.close'));
-                $this->closeTicketFromTelegram($ticket, $bot);
+                $this->closeTicketFromTelegram($ticket, $bot, $this->verifiedPortalUserForTelegramId($telegramUserId));
 
                 return;
             }
@@ -714,6 +715,7 @@ class SupportUpdateHandler
             return;
         }
 
+        $sender = $this->verifiedPortalUserForTelegramMessage($message);
         $text = trim((string) data_get($message, 'text', ''));
         if ($this->textMatches($text, [__('portal.support.close'), '/close'])) {
             $ticket = $session->activeTicket ?? $session->tickets()
@@ -722,7 +724,7 @@ class SupportUpdateHandler
                 ->first() ?? $session->tickets()->latest('id')->first();
 
             if ($ticket) {
-                $this->closeTicketFromTelegram($ticket, $bot);
+                $this->closeTicketFromTelegram($ticket, $bot, $sender);
             }
 
             return;
@@ -753,8 +755,17 @@ class SupportUpdateHandler
             ->where('payload->source_message_id', $sourceId)->where('payload->source_chat_id', $sourceChat)->first();
         $reply = $existing ?: SupportMessage::create([
             'support_ticket_id' => $ticket->id, 'direction' => 'staff', 'body' => $this->extractMessageSummary($message),
-            'payload' => ['source_message_id' => $sourceId, 'source_chat_id' => $sourceChat],
-            'telegram_username' => data_get($message, 'from.username'), 'delivery_status' => 'pending',
+            'payload' => [
+                'source_message_id' => $sourceId,
+                'source_chat_id' => $sourceChat,
+                'source_user_id' => data_get($message, 'from.id'),
+                'source_username' => data_get($message, 'from.username'),
+                'source_first_name' => data_get($message, 'from.first_name'),
+                'source_last_name' => data_get($message, 'from.last_name'),
+            ],
+            'telegram_username' => data_get($message, 'from.username'),
+            'sent_by_user_id' => $sender?->id,
+            'delivery_status' => 'pending',
         ]);
         app(SupportReplyDelivery::class)->deliver($reply);
     }
@@ -800,7 +811,7 @@ class SupportUpdateHandler
         $this->sendTicketOpeningMessage($bot, $client, $ticket);
     }
 
-    protected function closeTicketFromTelegram(SupportTicket $ticket, TelegramSupportBotService $bot): void
+    protected function closeTicketFromTelegram(SupportTicket $ticket, TelegramSupportBotService $bot, ?User $closedBy = null): void
     {
         $ticket->loadMissing('client', 'session.topic');
         if (! $ticket->client?->telegram_chat_id) {
@@ -811,6 +822,7 @@ class SupportUpdateHandler
             $ticket->forceFill([
                 'status' => SupportTicket::STATUS_CLOSED,
                 'closed_at' => now(),
+                'closed_by_user_id' => $closedBy?->id,
             ])->save();
         }
 
@@ -847,7 +859,24 @@ class SupportUpdateHandler
             'reply_markup' => ['inline_keyboard' => $buttons],
         ]);
     }
+    protected function verifiedPortalUserForTelegramMessage(array $message): ?User
+    {
+        return $this->verifiedPortalUserForTelegramId((string) data_get($message, 'from.id'));
+    }
 
+    protected function verifiedPortalUserForTelegramId(string $telegramUserId): ?User
+    {
+        if ($telegramUserId === '') {
+            return null;
+        }
+
+        return User::query()
+            ->where('telegram_chat_id', $telegramUserId)
+            ->whereNotNull('telegram_verified_at')
+            ->where('is_active', true)
+            ->where('approval_status', 'active')
+            ->first();
+    }
     protected function sendCompanyPrompt(TelegramSupportBotService $bot, SupportClient $client): void
     {
         Log::info('telegram_support.prompt.company', [
