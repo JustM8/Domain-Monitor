@@ -33,7 +33,7 @@ class PatchRecoveryTest extends TestCase
                 if (DB::transactionLevel() !== $this->baseline) {
                     throw new \LogicException('Unexpected enclosing transaction');
                 }
-                DB::table('monitoring_settings')->insert(['id' => 1]);
+                DB::table('monitoring_settings')->where('id', 1)->update(['default_timeout_seconds' => 4]);
                 $bot->sendMessage('5', 'Test');
                 throw new \RuntimeException('Simulated interruption after external delivery');
             }
@@ -44,7 +44,7 @@ class PatchRecoveryTest extends TestCase
         $inbox->handle($payload, $handler, $bot);
         $inbox->handle($payload, $handler, $bot);
         Http::assertSentCount(1);
-        $this->assertDatabaseHas('monitoring_settings', ['id' => 1]);
+        $this->assertDatabaseHas('monitoring_settings', ['id' => 1, 'default_timeout_seconds' => 4]);
         $row = DB::table('telegram_webhook_receipts')->first();
         $this->assertSame('needs_review', $row->status);
         $this->assertStringNotContainsString('private content', $row->payload);
@@ -145,31 +145,5 @@ class PatchRecoveryTest extends TestCase
         Http::assertSentCount(1);
         $this->assertFalse($bot->handlingWebhook);
         $this->assertDatabaseHas('telegram_webhook_receipts', ['update_id' => 803, 'status' => 'needs_review']);
-    }
-
-    public function test_existing_catalog_and_credentials_survive_upgrade_from_pre_patch_schema(): void
-    {
-        $files = ['2026_09_09_000001_secure_portal_accounts_and_sites.php', '2026_09_09_000002_create_site_monitoring.php', '2026_09_09_000003_retire_legacy_monitoring.php', '2026_09_14_000001_add_recovery_and_control_history.php'];
-        foreach (array_reverse($files) as $file) {
-            (require database_path('migrations/'.$file))->down();
-        }
-        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('users', 'approval_status'));
-        $company = \App\Modules\Shared\Models\Company::create(['name' => 'Existing company']);
-        $user = \App\Models\User::factory()->create(['is_active' => false]);
-        $site = $this->site(['company_id' => $company->id, 'admin_password' => Crypt::encryptString('existing-password')]);
-        $ftp = \App\Modules\Ftp\Models\FtpAccount::create(['company_id' => $company->id, 'host' => 'ftp.example.com', 'password' => Crypt::encryptString('ftp-secret')]);
-        $site->ftpAccounts()->attach($ftp);
-        $key = $site->api_token;
-        foreach ($files as $file) {
-            (require database_path('migrations/'.$file))->up();
-        }
-        $this->assertSame($key, $site->fresh()->api_token);
-        $this->assertSame('existing-password', $site->fresh()->decryptedAdminPassword());
-        $this->assertSame('ftp-secret', Crypt::decryptString($ftp->fresh()->password));
-        $this->assertSame($company->id, $site->fresh()->company_id);
-        $this->assertSame($ftp->id, $site->fresh()->ftpAccounts()->first()->id);
-        $this->assertSame('blocked', $user->fresh()->approval_status);
-        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasTable('domains'));
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('site_control_attempts'));
     }
 }

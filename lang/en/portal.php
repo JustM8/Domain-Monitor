@@ -424,7 +424,7 @@ return [
         'settings_buttons_hint' => 'Client buttons are built only from active topics with a chat ID.',
         'new_topic' => 'New group',
         'request' => [
-            'company_hint' => 'Enter the client company name.',
+            'company_hint' => 'Enter the company name.',
             'name_hint' => 'Enter your full name.',
             'email_hint' => 'Enter your work email.',
             'email_invalid' => 'Please enter a valid email address.',

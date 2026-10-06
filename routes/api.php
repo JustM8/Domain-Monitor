@@ -10,3 +10,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 require app_path('Modules/Site/routes/api.php');
 require app_path('Modules/TelegramAccess/routes/api.php');
 require app_path('Modules/TelegramSupport/routes/api.php');
+require app_path('Modules/Monitoring/routes/api.php');

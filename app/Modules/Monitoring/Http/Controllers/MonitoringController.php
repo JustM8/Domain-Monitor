@@ -4,133 +4,151 @@ namespace App\Modules\Monitoring\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Modules\Monitoring\Services\MonitoringNotifications;
-use App\Modules\Monitoring\Services\MonitoringOptions;
-use App\Modules\Monitoring\Services\MonitoringReport;
-use App\Modules\Monitoring\Services\SiteMonitor;
-use App\Modules\Shared\Models\ActivityLog;
+use App\Modules\Monitoring\Models\Monitor;
+use App\Modules\Monitoring\Services\MonitorHeartbeat;
+use App\Modules\Monitoring\Services\MonitorHistory;
+use App\Modules\Monitoring\Services\MonitoringSettings;
+use App\Modules\Monitoring\Services\MonitoringTime;
+use App\Modules\Monitoring\Services\MonitorManager;
+use App\Modules\Monitoring\Services\MonitorRunner;
 use App\Modules\Site\Models\Site;
-use App\Modules\Site\Services\SiteMetadataService;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class MonitoringController extends Controller
 {
-    public function index(Request $request, MonitoringNotifications $notifications, MonitoringReport $reports)
+    private function users()
     {
-        $request->validate([
-            'search' => ['nullable', 'string', 'max:255'], 'environment' => ['nullable', 'in:prod,dev'],
-            'availability' => ['nullable', 'in:up,down,planned,unknown,stale'],
-            'enabled' => ['nullable', 'in:0,1'], 'mode' => ['nullable', 'in:0,1'],
-        ]);
-        $query = Site::query()->leftJoin('monitoring_states as ms', 'ms.site_id', '=', 'sites.id')
-            ->select('sites.*', 'ms.availability', 'ms.last_checked_at', 'ms.next_check_at', 'ms.http_status',
-                'ms.response_ms', 'ms.consecutive_failures', 'ms.observed_interval');
-        if ($request->filled('search')) {
-            $query->where(fn ($q) => $q->where('sites.name', 'like', '%'.$request->input('search').'%')->orWhere('sites.url', 'like', '%'.$request->input('search').'%'));
+        return User::with('role')->get()->filter(fn ($u) => $u->canPortal('monitoring.read') && $u->canUseAccessBot() && $u->telegramIsLinked());
+    }
+
+    public function index(Request $r)
+    {
+        $r->validate(['search' => 'nullable|string|max:255', 'type' => 'nullable|in:http,tcp,heartbeat']);
+        $q = Monitor::with('site')->whereHas('site');
+        if ($r->filled('search')) {
+            $q->where('name', 'like', '%'.$r->input('search').'%');
         }
-        if ($request->filled('environment')) {
-            $query->where('sites.environment', $request->input('environment'));
+        if ($r->filled('type')) {
+            $q->where('type', $r->input('type'));
         }
-        foreach (['enabled' => 'monitoring_enabled', 'mode' => 'remote_control_enabled'] as $filter => $column) {
-            if ($request->filled($filter)) {
-                $query->where('sites.'.$column, $request->input($filter));
+        $states = DB::table('monitoring_states')->get()->keyBy('monitor_id');
+        $totals = ['total' => 0, 'up' => 0, 'down' => 0, 'unknown' => 0, 'planned' => 0, 'heartbeat_misses' => 0];
+        foreach (Monitor::whereHas('site')->get() as $m) {
+            $state = $states[$m->id];
+            $status = $m->enabled ? MonitorHistory::availability($state) : 'unknown';
+            $totals['total']++;
+            $totals[$status]++;
+            if ($m->type === 'heartbeat' && $status === 'down') {
+                $totals['heartbeat_misses']++;
             }
         }
-        $staleIds = DB::table('monitoring_states')->whereNotNull('last_checked_at')->get()
-            ->filter(fn ($state) => CarbonImmutable::parse($state->last_checked_at, 'UTC')
-                ->addMinutes(($state->observed_interval ?: 5) * 2)->lt(now()))
-            ->pluck('site_id')->all();
-        if ($request->filled('availability')) {
-            if ($request->input('availability') === 'unknown') {
-                $query->where(fn ($q) => $q->whereNull('ms.last_checked_at')->orWhereIn('sites.id', $staleIds));
-            } elseif ($request->input('availability') === 'stale') {
-                $query->where('sites.monitoring_enabled', true)->where('ms.next_check_at', '<', now()->subMinute());
-            } else {
-                $query->where('ms.availability', $request->input('availability'))->whereNotIn('sites.id', $staleIds);
-            }
-        }
-        $ids = (clone $query)->pluck('sites.id')->all();
-        $range = $reports->range($request, $ids);
-        $dueQuery = Site::query()->where('monitoring_enabled', true)
-            ->leftJoin('monitoring_states as ms', 'ms.site_id', '=', 'sites.id')
-            ->where(fn ($q) => $q->whereNull('ms.next_check_at')->orWhere('ms.next_check_at', '<=', now()));
 
-        return view('portal.monitoring.index', [
-            'sites' => $query->orderBy('sites.name')->paginate(30)->withQueryString(),
-            'report' => $reports->build($ids, $range),
-            'lastRun' => DB::table('monitoring_runs')->latest('id')->first(),
-            'enabledSitesCount' => Site::query()->where('monitoring_enabled', true)->count(),
-            'dueSitesCount' => $dueQuery->count('sites.id'),
-            'pendingNotifications' => DB::table('monitoring_notifications')->whereNull('sent_at')->whereNull('cancelled_at')->count(),
-            'recipients' => $this->recipients(), 'selectedRecipients' => $notifications->recipientIds(),
-        ]);
+        return view('portal.monitoring.index', ['monitors' => $q->orderBy('site_id')->orderBy('id')->paginate(30)->withQueryString(), 'states' => $states, 'totals' => $totals,
+            'incidents' => DB::table('monitoring_incidents')->whereNull('closed_at')->count(), 'sslWarnings' => DB::table('monitoring_certificates')->where('not_after', '<=', MonitoringTime::store(MonitoringTime::now()->addDays(app(MonitoringSettings::class)->get()->ssl_warning_days)))->count(),
+            'lastRun' => DB::table('monitoring_runs')->latest('id')->first(), 'sites' => Site::orderBy('name')->get(), 'users' => $this->users()]);
     }
 
-    public function show(Request $request, Site $site, MonitoringReport $reports)
+    public function show(Monitor $monitor, MonitorHistory $history)
     {
-        $range = $reports->range($request, [$site->id]);
-        $checks = DB::table('monitoring_checks')->where('site_id', $site->id)
-            ->where('checked_at', '>=', $range['from']->utc())->where('checked_at', '<=', $range['to']->utc())
-            ->latest('id')->paginate(30, ['*'], 'checks_page')->withQueryString();
-        $incidents = DB::table('monitoring_incidents')->where('site_id', $site->id)
-            ->where('opened_at', '<', $range['to']->utc())
-            ->where(fn ($q) => $q->whereNull('closed_at')->orWhere('closed_at', '>', $range['from']->utc()))
-            ->latest('id')->paginate(20, ['*'], 'incidents_page')->withQueryString();
+        abort_unless($monitor->site, 404);
 
-        return view('portal.monitoring.show', [
-            'site' => $site, 'state' => DB::table('monitoring_states')->where('site_id', $site->id)->first(),
-            'checks' => $checks, 'incidents' => $incidents, 'report' => $reports->build([$site->id], $range),
-            'recipients' => $this->recipients(),
-            'latestCheck' => DB::table('monitoring_checks')->where('site_id', $site->id)->latest('id')->first(),
-        ]);
+        return view('portal.monitoring.show', ['monitor' => $monitor, 'state' => DB::table('monitoring_states')->where('monitor_id', $monitor->id)->first(),
+            'incidents' => DB::table('monitoring_incidents')->where('monitor_id', $monitor->id)->latest('id')->limit(10)->get(), 'diagnostics' => DB::table('monitoring_diagnostics')->where('monitor_id', $monitor->id)->latest('id')->limit(20)->get(),
+            'rollups' => $history->report($monitor->id), 'certificate' => DB::table('monitoring_certificates')->where('monitor_id', $monitor->id)->latest('verified_at')->first(), 'users' => $this->users(),
+            'selectedRecipients' => DB::table('monitoring_monitor_recipients')->where('monitor_id', $monitor->id)->pluck('user_id')->all(), 'zone' => MonitoringTime::zone($monitor->site_id)]);
     }
 
-    public function updateSite(Request $request, Site $site, MonitoringOptions $options, SiteMetadataService $metadata)
+    private function input(Request $r, ?Monitor $m = null): array
     {
-        $data = $options->fromRequest($request);
-        // No checkboxes selected means use global recipients, only in this full settings form.
-        $data['monitoring_recipient_ids'] ??= null;
-        $before = $site->only(array_keys($data));
-        $site = $metadata->update($site, $data);
-        $log = new ActivityLog(['user_id' => auth()->id(), 'action' => 'monitoring.site_settings_updated',
-            'properties' => ['before' => $before, 'after' => $site->only(array_keys($data))]]);
-        $log->subject()->associate($site);
-        $log->save();
+        $type = $m?->type ?? $r->input('type');
 
-        return back()->with('success', 'Налаштування моніторингу збережено.');
+        return ['name' => $r->input('name'), 'type' => $type, 'enabled' => $r->boolean('enabled'), 'custom_interval_seconds' => $r->input('custom_interval_seconds'),
+            'timeout_seconds' => $r->input('timeout_seconds'), 'failure_threshold' => $r->input('failure_threshold'), 'recovery_threshold' => $r->input('recovery_threshold'),
+            'recipient_mode' => $r->input('recipient_mode', 'inherit'), 'recipient_ids' => $r->input('recipient_ids', []),
+            'config' => match ($type) {
+                'http' => ['url' => $r->input('url'), 'status_codes' => $r->filled('status_codes') ? array_map('intval', explode(',', $r->input('status_codes'))) : null, 'content' => $r->input('content'), 'respect_site_control' => $r->boolean('respect_site_control')],
+                'tcp' => ['hostname' => $r->input('hostname'), 'port' => $r->input('port')],
+                'heartbeat' => ['expected_interval_seconds' => $r->input('expected_interval_seconds'), 'grace_seconds' => $r->input('grace_seconds')], default => [],
+            }];
     }
 
-    public function check(Site $site, SiteMonitor $monitor)
+    public function store(Request $r, MonitorManager $manager)
     {
+        $r->validate(['site_id' => 'required|exists:sites,id']);
+        $site = Site::findOrFail($r->input('site_id'));
+        $monitor = $manager->create($site->id, $this->input($r));
+
+        return redirect()->route('portal.monitoring.show', $monitor->id);
+    }
+
+    public function update(Request $r, Monitor $monitor, MonitorManager $manager)
+    {
+        abort_unless($monitor->site, 404);
+        $data = $this->input($r, $monitor);
+        $data['slot'] = $monitor->slot;
+        $manager->update($monitor->id, $data);
+
+        return back()->with('success', 'Збережено. Нове спостереження починається UNKNOWN.');
+    }
+
+    public function check(Monitor $monitor, MonitorRunner $runner)
+    {
+        abort_unless($monitor->site && $monitor->type !== 'heartbeat', 422);
         try {
-            $result = $monitor->check($site, true);
-        } catch (\App\Modules\Monitoring\Services\CheckAlreadyRunning $e) {
-            return back()->with('warning', $e->getMessage());
+            $r = $runner->manual($monitor->id);
+        } catch (\RuntimeException) {
+            return back()->with('warning', 'Ліміт ручних перевірок досягнуто.');
         }
 
-        return back()->with($result['availability'] === 'down' ? 'warning' : 'success',
-            'Ручна перевірка: '.($result['error'] ?: ['up' => 'доступний', 'planned' => 'планово вимкнений'][$result['availability']]));
+        return back()->with($r['up'] ? 'success' : 'warning', 'Manual: '.($r['error_kind'] ?? 'UP').($r['persisted'] ? '' : ' (quota: detail не збережено)'));
     }
 
-    private function recipients()
+    public function settings()
     {
-        return User::with('role')->where('is_active', true)->get()
-            ->filter(fn ($u) => $u->canPortal('monitoring.read') && $u->canUseAccessBot() && $u->telegramIsLinked());
+        return view('portal.monitoring.settings', ['settings' => app(MonitoringSettings::class)->get(), 'users' => $this->users(), 'selectedRecipients' => DB::table('monitoring_default_recipients')->pluck('user_id')->all()]);
     }
 
-    public function settings(Request $request)
+    public function saveSettings(Request $r, MonitoringSettings $settings)
     {
-        $data = $request->validate(['recipient_ids' => ['nullable', 'array', 'max:100'], 'recipient_ids.*' => ['integer', 'distinct', Rule::exists('users', 'id')]]);
-        $ids = array_map('intval', $data['recipient_ids'] ?? []);
-        foreach (User::with('role')->whereIn('id', $ids)->get() as $user) {
-            abort_unless($user->canPortal('monitoring.read') && $user->canUseAccessBot() && $user->telegramIsLinked(), 422, 'Одержувач має бути активним Admin/PM з підключеним Access-ботом.');
+        $data = $r->all();
+        $data['tcp_allowed_ports'] = array_map('intval', explode(',', (string) $r->input('tcp_allowed_ports', '80,443')));
+        // The broad PM write permission does not confer permission to open scanning ports.
+        if (! $r->user()->isAdmin()) {
+            abort_unless($data['tcp_allowed_ports'] === $settings->ports(), 403);
         }
-        DB::table('monitoring_settings')->updateOrInsert(['id' => 1], ['recipient_ids' => json_encode($ids), 'updated_at' => now(), 'created_at' => now()]);
-        ActivityLog::create(['user_id' => auth()->id(), 'action' => 'monitoring.recipients_updated', 'properties' => ['recipient_ids' => $ids]]);
+        $settings->update($data);
 
-        return back()->with('success', 'Відповідальних збережено.');
+        return back()->with('success', 'Monitoring Settings збережено.');
+    }
+
+    public function credential(Request $r, Monitor $monitor, MonitorHeartbeat $heartbeats)
+    {
+        abort_unless($monitor->type === 'heartbeat' && $monitor->site, 422);
+        $r->validate(['overlap_seconds' => 'nullable|integer|between:0,3600']);
+        if ($r->boolean('revoke')) {
+            $heartbeats->revoke($monitor->id);
+
+            return back()->with('success', 'Credentials revoked.');
+        }
+
+        return back()->with('heartbeatCredential', $heartbeats->rotate($monitor->id, $r->integer('overlap_seconds')));
+    }
+
+    public function preference(Request $r, Monitor $monitor)
+    {
+        $r->validate(['display_timezone' => 'nullable|timezone']);
+        if ($r->filled('display_timezone')) {
+            DB::table('monitoring_site_preferences')->updateOrInsert(['site_id' => $monitor->site_id], ['display_timezone' => $r->input('display_timezone')]);
+        } else {
+            DB::table('monitoring_site_preferences')->where('site_id', $monitor->site_id)->delete();
+        }
+
+        return back();
+    }
+
+    public function site(Site $site)
+    {
+        return redirect()->route('portal.monitoring.show', $site->primaryMonitor()->firstOrFail()->id);
     }
 }

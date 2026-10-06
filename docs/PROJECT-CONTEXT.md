@@ -1,6 +1,6 @@
 # Контекст проєкту
 
-Дата аналізу: 2026-09-19. Оновлено після реалізації [патча моніторингу](MONITORING-PATCH.md). Джерело — локальний код, міграції, шаблони, тести та наявні документи. Продакшен, робоча база, реальні боти й cron у цьому аналізі не перевірялися.
+Актуалізовано 2026-10-05 після локального [Monitoring V2](MONITORING-V2-IMPLEMENTATION.md). Продакшен, робоча база, реальні боти й hosting cron не змінювалися. Попередній патч від 19 вересня описує V1.
 
 ## Призначення й архітектура
 
@@ -16,7 +16,7 @@
 | --- | --- |
 | Site / sites | Основний реєстр сайтів; компанія, статус, технічні параметри, доступи, soft delete |
 | site_type | site / 3d / devbase: категорія проєкту |
-| environment | prod / dev: середовище; автоматичні перевірки визначаються окремим monitoring_enabled |
+| environment | prod / dev: середовище; автоматичні перевірки визначаються enabled у Monitor relation |
 | status_id | Бізнес-статус; не результат перевірки й не команда вимкнення |
 | remote_control_enabled | Дозвіл надсилати дистанційні команди |
 | is_active | Бажаний стан керованого сайту, не виміряна доступність |
@@ -43,7 +43,7 @@ PM має sites.control, але не sites.write: це важливо для н�
 
 1. Створення сайту: SiteController перевіряє дані, шифрує доступи/ключ, створює запис, ревізію та аудит. Команда керування автоматично не відправляється.
 2. Керування: SiteControlService змінює бажаний стан/версію; SiteSyncService надсилає HTTPS-команду та перевіряє збіг підтвердженого стану й версії. Невдала доставка не доводить виконання команди.
-3. Моніторинг: hosting cron → monitoring:run → SiteMonitor → SafeHttp → результати/денні лічильники/інциденти → записи сповіщень → Access-бот.
+3. Monitoring V2: cron → monitoring:run → MonitorRunner/Heartbeat evaluator → DB claim → HTTP/TCP probe → fenced state/span/Kyiv rollup commit → immutable events → persistent deliveries через Access-бот. Routine success не створює raw row. Monitoring Settings typed; nullable Monitor overrides; UTC DATETIME(6), Europe/Kyiv calendar і display-only preferences. Site checkbox керує primary HTTP relation; старі Monitoring Site columns видаляються cutover migration.
 4. Підтримка: окремий Telegram webhook → inbox/обробник → клієнти, сесії, тікети й повідомлення → сервіс доставки відповідей. Staff-відповіді з Telegram-груп атрибутуються до підтверджених портал-користувачів через `users.telegram_chat_id`; відповідальні за напрям (`support_topic_user`) і фактичні виконавці в аналітиці розділені.
 
 ## Експлуатаційний контекст
@@ -57,8 +57,8 @@ PM має sites.control, але не sites.write: це важливо для н�
 
 ## Робота з документацією
 
-Для ручного оновлення хостингу: [MONITORING-DEPLOY.md](MONITORING-DEPLOY.md), точні 22 робочі файли та повний перелік патча.
+Для V2 deployment: [MONITORING-V2-DEPLOY.md](MONITORING-V2-DEPLOY.md), exact upload/delete inventory, targeted cutover migration, read-only business baseline verification та hosting runtime canary. [MONITORING-DEPLOY.md](MONITORING-DEPLOY.md) — історичний V1 runbook.
 
 Початок задачі: [AGENTS.md](../AGENTS.md) → [карта модулів](MODULE-MAP.md) → потрібний сервіс і тести. Для моніторингу — [аналіз і план](MONITORING-PLAN.md). Після реалізації оновлювати факти й статус плану.
 
-Патч реалізований: 54 тести, 389 assertions на PHP 8.3 / SQLite. Хостинг не оновлювався. Автоматичний обхід працює за monitoring_enabled; ручні перевірки відокремлені. Часову історію й гістограми зберігають MonitoringHistory та MonitoringReport; SiteProbe збирає результати. Докладніше — [MONITORING-PATCH.md](MONITORING-PATCH.md). [PATCH-VALIDATION.md](PATCH-VALIDATION.md) залишається історичним звітом від 14 вересня.
+V2 implementation і validation: [MONITORING-V2-IMPLEMENTATION.md](MONITORING-V2-IMPLEMENTATION.md). HTTP/SSL/Heartbeat/TCP реалізовані локально, cutover/retry/1000-success storage перевірені також на isolated MySQL 5.7.44. Ancillary Support/control recovery у RunMonitoring збережено. Патч V1 мав 54 тести/389 assertions; це історичний результат, не поточна schema. [MONITORING-PATCH.md](MONITORING-PATCH.md) і [PATCH-VALIDATION.md](PATCH-VALIDATION.md) не переписані під V2.

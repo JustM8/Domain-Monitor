@@ -33,7 +33,8 @@ class PortalDetailsTest extends TestCase
                 $this->get($path)->assertOk();
             }
             if ($role !== 'developer') {
-                $this->get('/portal/monitoring/sites/'.$site->id)->assertOk();
+                $this->get('/portal/monitoring/sites/'.$site->id)->assertRedirect('/portal/monitoring/monitors/'.$site->primaryMonitor->id);
+                $this->get('/portal/monitoring/monitors/'.$site->primaryMonitor->id)->assertOk();
             }
         }
     }

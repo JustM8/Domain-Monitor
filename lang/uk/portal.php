@@ -407,7 +407,7 @@ return [
         'settings_buttons_hint' => 'Кнопки клієнта формуються лише з активних тем, у яких вказано ID чату.',
         'new_topic' => 'Нова група',
         'request' => [
-            'company_hint' => 'Введіть назву компанії клієнта.',
+            'company_hint' => 'Введіть назву компанії.',
             'name_hint' => 'Введіть ПІБ.',
             'email_hint' => 'Введіть робочий email.',
             'email_invalid' => 'Введіть коректний email.',

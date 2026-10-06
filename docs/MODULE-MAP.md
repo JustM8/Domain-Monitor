@@ -1,11 +1,11 @@
 # Карта модулів
 
-Перевірено за кодом 2026-09-19. Шляхи відносні до кореня проєкту; модулі у app/Modules.
+Актуалізовано за локальним кодом 2026-10-05 після Monitoring V2. Шляхи відносні до кореня проєкту; модулі у app/Modules.
 
 | Модуль | Відповідальність | Основні точки входу всередині модуля |
 | --- | --- | --- |
 | Site | Картки, доступи, тип/середовище, ревізії, iframe, керування | Models/Site.php; Http/Controllers/SiteController.php; Services/SiteControlService.php, SiteSyncService.php, SiteMetadataService.php, SitePresentation.php |
-| Monitoring | HTTP-перевірки, стани, інциденти, статистика й сповіщення | Console/RunMonitoring.php; Services/SiteMonitor.php, MonitoringNotifications.php; Http/Controllers/MonitoringController.php; config.php |
+| Monitoring | HTTP/TCP/Heartbeat, SSL lifecycle, UTC claims/state, compressed history, Kyiv rollups, immutable events/delivery, typed settings | Models/Monitor.php; Console/RunMonitoring.php, MonitoringMaintenance.php, VerifyMonitoring.php; Services/MonitorRunner.php, MonitorManager.php, MonitorHistory.php, MonitorRetention.php, MonitorEvents.php, MonitorHeartbeat.php, MonitorCertificates.php, MonitoringSettings.php, MonitoringTime.php, MonitoringInstaller.php, MonitoringAddressPolicy.php; Http/Controllers; routes/web.php, api.php |
 | Shared | Права, активність користувача, вихідний HTTP, довідники, dashboard, кошик, аудит | Support/PortalAccess.php; Http/SafeHttp.php, OutboundAddressPolicy.php; Middleware; Models; Traits/HasPortalAudit.php |
 | TelegramAccess | Підключення бота співробітником, одноразові посилання, видача доступів, транспорт повідомлень моніторингу | Services/AccessLinkService.php, AccessUpdateHandler.php, TelegramBotService.php; Console/TelegramSetWebhook.php |
 | TelegramSupport | Клієнти, теми/сесії/тікети, повідомлення, аналітика, доставка | Models; Services/SupportUpdateHandler.php, SupportWebhookInbox.php, SupportReplyDelivery.php, TelegramSupportBotService.php; Http/Controllers |
@@ -21,11 +21,11 @@
 - app/Console/Kernel.php: реєстрація команд; schedule() не запускає моніторинг.
 - resources/views/layouts/portal.blade.php: каркас порталу.
 - resources/views/portal/sites/add.blade.php: створення; show.blade.php: картка, редагування й керування; presentation-fields.blade.php: параметри показу.
-- resources/views/portal/monitoring/index.blade.php: список, загальні підсумки, cron, відповідальні; show.blade.php: інциденти, перевірки й денні лічильники.
+- resources/views/portal/monitoring/index.blade.php: overview/list/create; show.blade.php: Monitor config, incidents, selected diagnostics, 7/30-day summaries; settings.blade.php: global typed settings; fields.blade.php: Monitor config; options.blade.php: primary Site inclusion/status.
 - Інші шаблони: resources/views/portal/{support,users,profile,companies,statuses,ftp,hosting,hosting-accounts,activity,trash}.
 - lang: переклади; частина текстів моніторингу зараз безпосередньо у PHP/Blade.
 
-## Схема моніторингу
+## Історична схема V1 (замінена V2)
 
 Джерело: database/migrations/2026_09_09_000002_create_site_monitoring.php. Робота через Query Builder, без окремих Eloquent-моделей цих таблиць.
 
@@ -41,7 +41,7 @@
 
 Міграція 2026_09_14_000001_add_recovery_and_control_history.php додає журнал керування та відновлення обробки Telegram.
 
-## Доповнення патча моніторингу 19 вересня
+## Історичні доповнення V1, 19 вересня (замінені V2)
 
 - Monitoring/Services/SiteProbe.php: HTTP/контент, помилки, транспортні метрики й сертифікат.
 - Monitoring/Services/MonitoringOptions.php: валідація параметрів та відповідальних.
@@ -58,7 +58,7 @@
 
 | Область | Файли |
 | --- | --- |
-| Моніторинг | tests/Feature/MonitoringTest.php, PatchRecoveryTest.php |
+| Моніторинг V2 | tests/Feature/MonitoringV2Test.php, MonitoringV2MigrationTest.php; tests/monitoring-v2-mysql.php; ancillary regression у PatchRecoveryTest.php |
 | Керування | tests/Feature/ChildControlIntegrationTest.php, PatchRecoveryTest.php |
 | Права | tests/Feature/PortalPermissionsTest.php, AccessAuthorizationTest.php |
 | Вихідний HTTP | tests/Feature/OutboundSecurityTest.php |
@@ -69,6 +69,9 @@
 Команда: php vendor/bin/phpunit. Налаштування безпечного тестового середовища — phpunit.xml і tests/TestCase.php.
 
 ## Документи
+
+- [MONITORING-V2-IMPLEMENTATION.md](MONITORING-V2-IMPLEMENTATION.md): актуальна schema/services/storage/validation/exact files; legacy classes History/Report/SiteProbe/SiteMonitor/Notifications замінені.
+- [MONITORING-V2-DEPLOY.md](MONITORING-V2-DEPLOY.md): актуальний cutover/runbook/runtime verification; єдина нова migration 2026_10_05_000001_install_monitoring_v2.php. Historical migrations збережені.
 
 - [MONITORING-DEPLOY.md](MONITORING-DEPLOY.md): точний перелік для FTP, міграція, cron і команди.
 

@@ -222,15 +222,16 @@ class SiteController extends Controller
         return redirect()->route('portal.sites.index')->with('success', __('portal.deleted'));
     }
 
-    public function check(Site $site, \App\Modules\Monitoring\Services\SiteMonitor $monitor)
+    public function check(Site $site, \App\Modules\Monitoring\Services\MonitorRunner $monitor)
     {
         try {
-            $result = $monitor->check($site, true);
-        } catch (\App\Modules\Monitoring\Services\CheckAlreadyRunning $e) {
-            return back()->with('warning', 'Перевірка вже виконується.');
+            $primary = app(\App\Modules\Monitoring\Services\MonitorManager::class)->primary($site);
+            $result = $monitor->manual($primary->id);
+        } catch (\RuntimeException $e) {
+            return back()->with('warning', 'Ліміт ручних перевірок досягнуто.');
         }
 
-        return back()->with($result['availability'] === 'down' ? 'warning' : 'success', 'Результат: '.($result['error'] ?: $result['availability']));
+        return back()->with($result['up'] ? 'success' : 'warning', 'Результат: '.($result['error_kind'] ?? 'UP').($result['persisted'] ? '' : ' (діагностику не збережено: quota)'));
     }
 
     public function sync(Site $site)
